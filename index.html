@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>すべて億分の1</title>
+  <meta name="description" content="81億人の誰かとして、もう一度生まれてみる。世界のどこかに生まれ、一年ずつ人生を歩む人生シミュレーションゲーム。">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- スタート画面 -->
+  <section id="start" class="screen start">
+    <div class="start-inner">
+      <div class="globe">🌏</div>
+      <p class="kicker">81億人の、誰かとして。</p>
+      <h1 class="logo">すべて<span>億分の1</span></h1>
+      <p class="lead">世界のどこかに、もう一度生まれてみる。<br>一年ずつ歩む、たった一度の人生シミュレーション。</p>
+      <div class="start-btns">
+        <button id="btn-random" class="primary big">🎲 生まれる</button>
+        <button id="btn-continue" class="ghost hidden">▶ 続きから</button>
+        <button id="btn-custom" class="link">⚙️ 国や名前を選んで生まれる</button>
+      </div>
+      <div id="custom" class="custom hidden">
+        <label>生まれる国<select id="sel-country"></select></label>
+        <label>性別<select id="sel-gender"><option value="">🎲 ランダム</option><option value="f">女の子</option><option value="m">男の子</option></select></label>
+        <label>名前（空欄ならその国の名前に）<input id="in-name" maxlength="12" placeholder="例：めりあ"></label>
+        <button id="btn-custom-go" class="primary">この設定で生まれる</button>
+      </div>
+      <ul class="features">
+        <li>👪 家族の名前・年齢・職業・年収がいつでも見られる</li>
+        <li>🎯 30種類以上の行動で、健康や心を自分で育てる</li>
+        <li>📋 結婚や大きな買い物の前に「判断材料」をチェック</li>
+        <li>🎎 23か国それぞれのお祭り・文化イベント</li>
+        <li>🧬 選んだ道によって、性格が育っていく</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ゲーム画面 -->
+  <div id="app" class="hidden">
+    <header class="topbar">
+      <button id="btn-home" class="logo-s">すべて<span>億分の1</span></button>
+      <button id="btn-help" class="icon-btn" aria-label="遊び方">❓</button>
+    </header>
+
+    <div class="layout">
+      <aside class="side">
+        <section id="profile" class="card profile"></section>
+        <section class="card">
+          <h2 class="card-h">📊 ステータス</h2>
+          <div id="stats" class="stats"></div>
+        </section>
+      </aside>
+
+      <main class="main">
+        <nav class="tabs">
+          <button data-tab="life">📖 人生</button>
+          <button data-tab="act">🎯 行動</button>
+          <button data-tab="fam">👪 家族</button>
+          <button data-tab="trait">🧬 性格</button>
+        </nav>
+        <div id="tab-life" class="tab-body"></div>
+        <div id="tab-act" class="tab-body hidden"></div>
+        <div id="tab-fam" class="tab-body hidden"></div>
+        <div id="tab-trait" class="tab-body hidden"></div>
+      </main>
+    </div>
+
+    <footer class="bottombar">
+      <div class="bb-ap">
+        <span class="muted small">今年の行動</span>
+        <span id="ap" class="ap"></span>
+      </div>
+      <button id="next" class="primary next"></button>
+    </footer>
+  </div>
+
+  <!-- イベントモーダル -->
+  <div id="modal" class="modal hidden" role="dialog" aria-modal="true">
+    <div class="sheet"><div id="modal-body" class="modal-body"></div></div>
+  </div>
+
+  <!-- エンディング -->
+  <section id="ending" class="screen ending hidden">
+    <div id="ending-body" class="ending-inner"></div>
+  </section>
+
+  <div id="toasts" class="toasts"></div>
+
+  <template id="help-tpl">
+    <div class="ev-emoji">🌏</div>
+    <h2 class="ev-title">遊び方</h2>
+    <div class="help">
+      <p><b>🎂 次の年へ</b>を押すと、1年が経ちます。いろいろな出来事や思い出が流れてきます。</p>
+      <p><b>🎯 行動</b>では、1年に3回まで好きな行動ができます。健康・心の余裕・知性・外見・体力・社交性・感性・幸福を、自分で育てましょう。仕事探しや恋人探しは「🌈 じんせい」から。</p>
+      <p><b>📋 判断材料</b>：結婚やお金のかかる選択では、相手のプロフィールや貯金・年収が表示されます。</p>
+      <p><b>🧬 性格</b>：同じ方向の選択を重ねると、新しい性格が芽生えます。選択肢の横の小さな絵文字が、近づく性格のヒントです。</p>
+      <p><b>👪 家族</b>：上の家族の欄をタップすると、くわしいプロフィールが見られます。</p>
+      <p class="muted small">進み具合はこのブラウザに自動保存されます。</p>
+    </div>
+  </template>
+
+  <script src="js/data/countries.js"></script>
+  <script src="js/data/traits.js"></script>
+  <script src="js/data/jobs.js"></script>
+  <script src="js/data/activities.js"></script>
+  <script src="js/data/memories.js"></script>
+  <script src="js/data/events.js"></script>
+  <script src="js/data/country_events.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/ui.js"></script>
+</body>
+</html>
