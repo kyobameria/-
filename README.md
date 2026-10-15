@@ -43,3 +43,7 @@ js/data/memories.js      思い出のテンプレート
 ```
 
 イベントや思い出はデータファイルに追加するだけで増やせます（書き方は各ファイル冒頭のコメント参照）。
+
+## 新作：Happy Birth Day
+
+`happy-birthday/index.html` で遊べる、もうひとつの人生シミュレーションゲーム。詳しくは [happy-birthday/README.md](happy-birthday/README.md)。
