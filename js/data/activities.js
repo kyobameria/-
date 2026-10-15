@@ -39,7 +39,7 @@ DATA.activities = [
     texts: ['10分間、何も考えない練習。3分で晩ごはんのことを考えていた。', '呼吸に集中すると、モヤモヤが少しずつほどけていった。'] },
   { id: 'onsen', cat: 'heart', name: '温泉・スパ', emoji: '♨️', min: 6, cost: 0.01, fx: { mind: [5, 9], health: [1, 3], happy: [2, 4] },
     texts: ['湯船につかった瞬間「あぁ〜」と声が出た。', 'サウナ→水風呂→外気浴。ととのった。'] },
-  { id: 'pet_play', cat: 'heart', name: 'ペットと遊ぶ', emoji: '🐶', min: 2, cost: 0, needPet: true, fx: { happy: [4, 7], mind: [3, 6] }, trait: ['動物好き', 0.3],
+  { id: 'pet_play', cat: 'heart', name: 'ペットと遊ぶ', emoji: '🐾', min: 2, cost: 0, needPet: true, fx: { happy: [4, 7], mind: [3, 6] }, trait: ['動物好き', 0.3],
     texts: ['{pet}がお腹を見せてゴロンとした。今日の勝者は{pet}。', '{pet}と昼寝した。最高の休日。'] },
   { id: 'karaoke', cat: 'heart', name: 'カラオケ', emoji: '🎤', min: 8, cost: 0.003, fx: { happy: [3, 6], mind: [3, 5], social: [1, 3] },
     texts: ['90点を超えた！採点機に初めて認められた日。', '喉が枯れるまで歌った。声がガラガラ。'] },

@@ -73,6 +73,11 @@
       G.stat(k, v);
     });
   };
+  // 支払い（18歳未満は家の貯金から）
+  G.pay = (n) => {
+    n = Math.round(n);
+    if (S.age < 18) S.familySavings -= n; else G.money(-n);
+  };
   G.money = (d) => {
     d = Math.round(d);
     if (!d) return;
@@ -130,12 +135,21 @@
   G.prefGender = () => G.chance(0.9) ? (S.gender === 'm' ? 'f' : 'm') : S.gender;
 
   let pid = 0;
+  // avoid に入っている名前とかぶらない名前を選ぶ（全部使い切ったときだけ重複を許す）
+  G.uniqueFirst = (gender, avoid) => {
+    const c = G.c();
+    const pool = gender === 'm' ? c.m : c.f;
+    const free = pool.filter(n => !(avoid || []).includes(n));
+    return G.pick(free.length ? free : pool);
+  };
+  // 同じ親から生まれたきょうだいの名前（自分を含む）
+  G.myKidsNames = () => G.people(p => ['息子', '娘', '義理の息子', '義理の娘'].includes(p.rel)).map(p => p.first);
   G.newPerson = (o) => {
     const c = G.c();
     const gender = o.gender || (G.chance(0.5) ? 'm' : 'f');
     const p = {
       id: 'p' + (Date.now() % 100000) + '_' + (pid++),
-      first: G.pick(gender === 'm' ? c.m : c.f),
+      first: G.uniqueFirst(gender, o.avoid),
       last: o.last || G.pick(c.last),
       gender, rel: o.rel || '', age: o.age != null ? o.age : 20,
       alive: true, close: o.close != null ? o.close : G.r(55, 85),
@@ -257,14 +271,17 @@
   G.setJob = (id, mult, pay) => {
     const j = DATA.jobById[id];
     const prevStudent = S.school;
-    S.job = id; S.jobTitle = j.name; S.retired = false;
+    G.clearCareer();
+    S.job = id; S.jobTitle = j.start || j.name; S.retired = false;
     S.income = pay != null ? Math.round(pay) : Math.round(j.pay * G.avg() * (mult || 1));
     S.jobYears = 0;
     if (['univ', 'grad', 'vocational', 'high'].includes(prevStudent) && !j.partTime && id !== 'model') { /* 在学中のデビューなどは学業継続 */ }
-    G.log('💼 ' + j.emoji + j.name + 'になった（年収 ' + G.fmt(S.income) + '）', 'big');
+    G.log('💼 ' + j.emoji + j.name + 'として働き始めた（' + S.jobTitle + '・年収 ' + G.fmt(S.income) + '）', 'big');
   };
-  G.quitJob = () => { if (S.job) G.log('🚪 ' + G.jobName() + 'の仕事を辞めた', 'ev'); S.job = null; S.jobTitle = ''; S.income = 0; };
-  G.retire = () => { S.job = null; S.jobTitle = ''; S.retired = true; S.income = Math.round(G.avg() * 0.35); G.log('🌅 引退して年金生活に入った（年金 ' + G.fmt(S.income) + '／年）', 'big'); };
+  // 仕事まわりの状態をリセット
+  G.clearCareer = () => { S.job = null; S.jobTitle = ''; S.income = 0; S.rank = 0; S.ladder = null; S.selfEmployed = false; };
+  G.quitJob = () => { if (S.job) G.log('🚪 ' + G.jobName() + 'の仕事を辞めた', 'ev'); G.clearCareer(); };
+  G.retire = () => { G.clearCareer(); S.retired = true; S.income = Math.round(G.avg() * 0.35); G.log('🌅 引退して年金生活に入った（年金 ' + G.fmt(S.income) + '／年）', 'big'); };
 
   // ================= 恋愛・結婚 =================
   G.marry = (p) => {
@@ -277,7 +294,7 @@
     if (p.kidsCount > 0) {
       for (let i = 0; i < p.kidsCount; i++) {
         const g = G.chance(0.5) ? 'm' : 'f';
-        const k = G.newPerson({ gender: g, age: G.r(1, Math.max(1, Math.min(p.age - 20, 18))), rel: g === 'm' ? '義理の息子' : '義理の娘', last: p.last, close: G.r(35, 60) });
+        const k = G.newPerson({ gender: g, age: G.r(1, Math.max(1, Math.min(p.age - 20, 18))), rel: g === 'm' ? '義理の息子' : '義理の娘', last: p.last, close: G.r(35, 60), avoid: G.myKidsNames().concat([S.me.first, p.first]) });
         G.add(k);
         G.log('👨‍👩‍👧 ' + G.fn(p) + 'の連れ子、' + G.fn(k) + '（' + k.age + '歳）と家族になった', 'ev');
       }
@@ -406,7 +423,8 @@
       if (mom.age - off < 18 || mom.age - off > 45) off = -off;
       const g = G.chance(0.5) ? 'm' : 'f';
       const rel = off > 0 ? (g === 'm' ? '兄' : '姉') : (g === 'm' ? '弟' : '妹');
-      const s = G.newPerson({ gender: g, age: off, rel, last: S.me.last, close: G.r(50, 85) });
+      const sibNames = [S.me.first].concat(S.people.filter(p => ['兄', '姉', '弟', '妹'].includes(p.rel)).map(p => p.first));
+      const s = G.newPerson({ gender: g, age: off, rel, last: S.me.last, close: G.r(50, 85), avoid: sibNames });
       S.people.push(s);
     }
     const kids = 1 + S.people.filter(p => ['兄', '姉'].includes(p.rel)).length;
@@ -474,7 +492,9 @@
       }
       if (isChild && p.married && p.age <= 42 && G.chance(0.15)) {
         const g = G.chance(0.5) ? 'm' : 'f';
-        const gc = G.newPerson({ gender: g, age: 0, rel: '孫', last: p.gender === 'm' ? p.last : G.pick(G.c().last), close: G.r(70, 95) });
+        const sameParent = S.people.filter(x => x.rel === '孫' && x.parentId === p.id).map(x => x.first);
+        const gc = G.newPerson({ gender: g, age: 0, rel: '孫', last: p.gender === 'm' ? p.last : G.pick(G.c().last), close: G.r(70, 95), avoid: sameParent.concat([p.first, S.me.first]) });
+        gc.parentId = p.id;
         p.kidsCount = (p.kidsCount || 0) + 1;
         S.people.push(gc);
         G.log('👶 孫が生まれた！ ' + p.first + 'の子、' + gc.first + '。', 'big');
@@ -624,37 +644,74 @@
     if (!S.job) return;
     const j = DATA.jobById[S.job];
     S.jobYears = (S.jobYears || 0) + 1;
-    if (j.volatile) {
-      S.income = Math.round(G.clamp(S.income * G.rf(0.65, 1.55), G.avg() * 0.15, G.avg() * 8));
-    } else if (!j.partTime) {
-      S.income = Math.round(S.income * G.rf(1.0, 1.04));
-      const pc = 0.1 + S.stats.smarts / 900 + (S.flags.careerBoost || 0) * 0.04 + (G.has('野心家') ? 0.06 : 0) + (G.has('努力家') ? 0.04 : 0);
-      if (S.jobYears >= 2 && G.chance(pc)) {
-        const mult = G.rf(1.08, 1.25);
-        S.income = Math.round(S.income * mult);
-        const titles = ['主任', '係長', '課長', '部長', '本部長', '役員'];
-        S.rank = Math.min((S.rank || 0) + 1, titles.length);
-        S.jobTitle = j.name + '（' + titles[S.rank - 1] + '）';
+    if (j.partTime) return;
+    const unstable = j.volatile || S.selfEmployed;
+    if (unstable) S.income = Math.round(G.clamp(S.income * G.rf(0.7, 1.45), G.avg() * 0.15, G.avg() * 8));
+    else S.income = Math.round(S.income * G.rf(1.0, 1.04));
+
+    // 昇進・キャリアアップ（職業ごとの肩書きルート）
+    const ladder = S.ladder || j.ladder || [];
+    const rank = S.rank || 0;
+    const pc = (unstable ? 0.08 : 0.1) + S.stats.smarts / 900 + (S.flags.careerBoost || 0) * 0.04 + (G.has('野心家') ? 0.06 : 0) + (G.has('努力家') ? 0.04 : 0);
+    if (S.jobYears >= 2 && G.chance(pc)) {
+      if (!S.ladder && j.branches && rank >= j.branchAt && !S.flags['branch_' + j.id]) {
+        S.flags['branch_' + j.id] = true;
+        G.queue(branchEvent(j));
+        return; // 分かれ道の年は、ほかのキャリアの変化は起こさない
+      } else if (rank < ladder.length) {
+        S.rank = rank + 1;
+        S.jobTitle = ladder[rank];
+        S.income = Math.round(S.income * G.rf(1.08, 1.25));
         S.flags.careerBoost = 0;
-        G.log('🎊 昇進した！ ' + S.jobTitle + '・年収 ' + G.fmt(S.income), 'good');
+        G.log((unstable ? '🌟 ステップアップ！ ' : '🎊 キャリアアップ！ ') + '「' + S.jobTitle + '」になった（年収 ' + G.fmt(S.income) + '）', 'good');
         G.stat('happy', 6);
       }
     }
     if (j.maxAge && S.age > j.maxAge && G.chance(0.5)) {
-      G.log('👋 ' + j.name + 'を引退した。体が昔のようには動かない。', 'ev'); S.job = null; S.jobTitle = ''; S.income = 0; S.rank = 0; return;
+      G.log('👋 ' + j.name + 'を引退した。体が昔のようには動かない。', 'ev'); G.clearCareer(); return;
     }
-    if (!j.partTime && S.age < 62 && G.chance(j.volatile ? 0.05 : 0.02)) {
-      G.log('📉 会社の業績悪化で、' + j.name + 'の仕事を失ってしまった…。', 'sad');
-      S.job = null; S.jobTitle = ''; S.income = 0; S.rank = 0;
+    if (S.age < 62 && G.chance(S.selfEmployed ? 0.04 : j.volatile ? 0.05 : 0.02)) {
+      G.log(S.selfEmployed ? '📉 経営が立ち行かなくなり、「' + S.jobTitle + '」としての仕事をたたむことになった…。' : '📉 会社の業績悪化で、' + j.name + 'の仕事を失ってしまった…。', 'sad');
+      G.clearCareer();
       G.stat('mind', -10); G.stat('happy', -6);
     }
+  }
+
+  // キャリアの分かれ道（マネジメント・独立・店舗を任される など）
+  function branchEvent(j) {
+    return {
+      emoji: j.emoji, title: 'キャリアの分かれ道',
+      cond: () => S.job === j.id && !S.ladder,
+      text: () => '「' + S.jobTitle + '」として、たくさんの経験を積んできた。この先、どの道に進む？',
+      info: () => [
+        { title: 'いまの仕事', rows: [['💼 肩書き', S.jobTitle], ['💴 年収', G.fmt(S.income)], ['📅 勤続', S.jobYears + '年']] },
+        { title: 'お金のこと', rows: G.moneyRows() }
+      ],
+      choices: () => j.branches.map(b => {
+        const cost = Math.round(G.avg() * (b.cost || 0));
+        return {
+          label: b.label,
+          sub: b.desc + '／年収の目安 ' + G.fmt(S.income * b.mult) + (cost ? '／初期費用 ' + G.fmt(cost) : '') + (b.self ? '／収入は不安定' : ''),
+          ok: S.money >= cost,
+          t: b.self ? ['自由人', '冒険好き'] : b.after.length ? ['野心家'] : ['のんびり屋'],
+          do: () => {
+            if (cost) G.money(-cost);
+            S.ladder = b.after; S.rank = 0; S.jobTitle = b.title; S.selfEmployed = !!b.self;
+            S.income = Math.round(S.income * b.mult);
+            G.fx(b.self ? { happy: 8, mind: -4 } : { happy: 6, social: 2 });
+            G.log('🧭 「' + S.jobTitle + '」として新しい一歩を踏み出した（年収 ' + G.fmt(S.income) + '）', 'big');
+            return b.self ? '覚悟を決めて独立した。看板を掲げた日の朝の空気は、少しだけ違って見えた。' : '新しい役割を引き受けた。これまでの経験が、次のステージで生きてくる。';
+          }
+        };
+      }).concat([{ label: '🌱 今のままの働き方を続ける', t: ['のんびり屋'], do: () => { G.fx({ mind: 5 }); S.ladder = []; return '「' + S.jobTitle + '」のまま、自分のペースで腕を磨き続けることにした。'; } }])
+    };
   }
 
   function familyEvents() {
     const sp = G.spouse();
     if (S.flags.trying && sp && S.age <= 46 && sp.age <= 46 && G.chance(0.4)) {
       const g = G.chance(0.5) ? 'm' : 'f';
-      const k = G.newPerson({ gender: g, age: 0, rel: g === 'm' ? '息子' : '娘', last: S.me.last, close: G.r(80, 98) });
+      const k = G.newPerson({ gender: g, age: 0, rel: g === 'm' ? '息子' : '娘', last: S.me.last, close: G.r(80, 98), avoid: G.myKidsNames().concat([S.me.first, sp.first]) });
       S.people.push(k);
       S.flags.trying = false; S.flags.babyAskedAge = S.age;
       sp.kidsCount = (sp.kidsCount || 0) + 1;
@@ -721,7 +778,8 @@
     ev.choices = () => [
       { label: '🎉 思いっきり楽しむ', t: ['社交的'], do: (S, G) => { if (S.age >= 18) G.money(-G.avg() * 0.004); G.fx({ happy: 6, social: 3 }); return G.pick(f.mem); } },
       { label: '🏠 家族とゆっくり過ごす', t: ['家族思い'], do: (S, G) => { G.closeAll(FAMILY_RELS, 3); G.fx({ happy: 4, mind: 3 }); return G.fill('{fam}たちと' + G.food() + 'を囲みながら、' + f.name + 'を過ごした。毎年同じことをするのが、なんだか心地いい。') || ('家族と' + f.name + 'を静かに過ごした。'); } },
-      { label: '📖 由来や歴史を調べる', t: ['伝統を重んじる', '好奇心旺盛'], do: (S, G) => { G.fx({ smarts: 3, art: 2 }); return f.name + 'の由来を調べてみた。昔の人の想いが、形を変えて今も続いているんだと知った。'; } },
+      { age: [6, 11], label: '👵 おじいちゃん・おばあちゃんに由来を聞く', t: ['伝統を重んじる', '好奇心旺盛'], do: (S, G) => { G.fx({ smarts: 2, art: 2 }); G.closeAll(['父', '母'], 2); return '「昔はね…」と始まる' + f.name + 'の話。知らなかったことばかりで、目を丸くして聞いた。'; } },
+      { age: [12, 120], label: '📖 由来や歴史を調べる', t: ['伝統を重んじる', '好奇心旺盛'], do: (S, G) => { G.fx({ smarts: 3, art: 2 }); return f.name + 'の由来を調べてみた。昔の人の想いが、形を変えて今も続いているんだと知った。'; } },
       { label: '😴 今年はのんびりパス', t: ['のんびり屋'], do: (S, G) => { G.fx({ mind: 4 }); return '遠くから聞こえる' + f.name + 'のにぎわいを、部屋で聞いていた。それもまた風情。'; } }
     ];
     return ev;
@@ -799,7 +857,16 @@
     while (Q.length) {
       const item = Q[0];
       const ev = item.ev;
-      try { if (ev.setup && item.ctx == null) item.ctx = ev.setup(S, G); } catch (e) { console.error(e); Q.shift(); continue; }
+      // 同じ年の前のイベントで状況が変わっていたら（恋人と別れた等）発生させない
+      if (item.ctx == null) {
+        let okNow = true;
+        try { if (ev.cond && !ev.cond(S, G)) okNow = false; } catch (e) { okNow = false; }
+        if (okNow && ev.setup) {
+          try { item.ctx = ev.setup(S, G); } catch (e) { console.error(e); okNow = false; }
+          if (item.ctx && 'p' in item.ctx && !item.ctx.p) okNow = false;
+        }
+        if (!okNow) { Q.shift(); continue; }
+      }
       if (ev.auto) {
         Q.shift();
         const r = capture(() => ev.auto(S, G, item.ctx));
@@ -808,7 +875,9 @@
       }
       let choices;
       try { choices = typeof ev.choices === 'function' ? ev.choices(S, G, item.ctx) : ev.choices; } catch (e) { console.error(e); Q.shift(); continue; }
-      item.choices = choices || [];
+      // 年齢に合う選択肢だけを残す（age: [最小, 最大]）
+      item.choices = (choices || []).filter(c => !c.age || (S.age >= c.age[0] && S.age <= c.age[1]));
+      if (!item.choices.length) { Q.shift(); continue; }
       UI.render();
       UI.showEvent(item);
       return;
@@ -906,7 +975,7 @@
     S.ap--;
     switch (id) {
       case 'jobhunt': G.queue('jobhunt'); break;
-      case 'quit': G.quitJob(); G.stat('mind', 6); S.rank = 0; break;
+      case 'quit': G.quitJob(); G.stat('mind', 6); break;
       case 'retire': G.retire(); G.stat('mind', 10); break;
       case 'findlove': G.queue('findlove'); break;
       case 'propose': G.queue('propose'); break;
@@ -931,6 +1000,7 @@
       const s = JSON.parse(raw);
       if (!s || !s.alive || !DATA.countryByCode[s.country]) return false;
       S = s;
+      (S.pets || []).forEach(p => { const t = DATA.petTypes.find(x => x.type === p.type); if (t) p.emoji = t.emoji; });
       return true;
     } catch (e) { return false; }
   }

@@ -94,8 +94,8 @@ DATA.countryEvents = {
       text: () => '高校最後のダンスパーティー「プロム」の季節！',
       info: (S, G, x) => [{ title: '', rows: [['👗 ドレス・タキシード代', G.fmt(x.cost)]] }],
       choices: (S, G, x) => [
-        { label: '🌹 気になる人を誘う', t: ['ロマンチスト'], do: (S, G) => { G.money(-x.cost); if (G.chance(0.5)) { G.fx({ happy: 10 }); return 'OKをもらった！コサージュを渡す手が震えた。'; } G.fx({ happy: -3 }); return '断られたけど、友達グループで行って結局一番楽しんだ。'; } },
-        { label: '👯 友達同士で行く', t: ['社交的'], do: (S, G) => { G.money(-x.cost); G.fx({ social: 5, happy: 6 }); return 'リムジンを割り勘でレンタル。窓から叫んだ青春。'; } },
+        { label: '🌹 気になる人を誘う', t: ['ロマンチスト'], do: (S, G) => { G.pay(x.cost); if (G.chance(0.5)) { G.fx({ happy: 10 }); return 'OKをもらった！コサージュを渡す手が震えた。'; } G.fx({ happy: -3 }); return '断られたけど、友達グループで行って結局一番楽しんだ。'; } },
+        { label: '👯 友達同士で行く', t: ['社交的'], do: (S, G) => { G.pay(x.cost); G.fx({ social: 5, happy: 6 }); return 'リムジンを割り勘でレンタル。窓から叫んだ青春。'; } },
         { label: '🎮 行かずに家でゲーム', t: ['人見知り'], do: (S, G) => { G.fx({ mind: 3 }); return 'アンチ・プロム同盟の仲間たちと、朝までゲーム大会。'; } }
       ] },
     { id: 'us_roadtrip', emoji: '🚗', title: 'ロードトリップ', min: 19, max: 30,
@@ -161,7 +161,8 @@ DATA.countryEvents = {
       text: () => '激しいモンスーンで、町が水浸しになった。',
       choices: () => [
         { label: '⛵ 紙の船を浮かべて遊ぶ', t: ['楽観的'], do: (S, G) => { G.fx({ happy: 4 }); return '水たまりが海になった。紙の船はどこまでも流れていった。'; } },
-        { label: '🙌 近所の片付けを手伝う', t: ['優しい'], do: (S, G) => { G.fx({ social: 5, fitness: 2 }); return 'みんなで泥をかき出した。終わった後のチャがしみた。'; } }
+        { age: [10, 90], label: '🙌 近所の片付けを手伝う', t: ['優しい'], do: (S, G) => { G.fx({ social: 5, fitness: 2 }); return 'みんなで泥をかき出した。終わった後のチャがしみた。'; } },
+        { age: [3, 9], label: '🪟 窓から雨を眺める', t: ['のんびり屋'], do: (S, G) => { G.fx({ mind: 3, art: 2 }); return '窓にあたる雨粒の競争を、どっちが先に落ちるか予想して遊んだ。'; } }
       ] },
     { id: 'bd_language', emoji: '🌺', title: '言語の日（ショヒド・ミナール）', min: 8, max: 90,
       auto: (S, G) => { G.fx({ art: 3, mind: 2 }); return '2月21日、裸足で献花の列に並んだ。母語を守った人たちへの感謝を込めて。'; } }
@@ -297,9 +298,9 @@ DATA.countryEvents = {
     { id: 'ke_safari', emoji: '🦁', title: 'サファリ', min: 6, max: 70,
       setup: (S, G) => ({ cost: Math.round(G.avg() * 0.05) }),
       text: () => 'マサイマラでヌーの大移動が始まったらしい！',
-      info: (S, G, x) => [{ title: '', rows: [['🚙 サファリツアー代', G.fmt(x.cost)]] }],
+      info: (S, G, x) => [{ title: '', rows: [['🚙 サファリツアー代', G.fmt(x.cost)], [S.age < 18 ? '🏠 家の貯金' : '💰 あなたの貯金', G.fmt(S.age < 18 ? S.familySavings : S.money)]] }],
       choices: (S, G, x) => [
-        { label: '🚙 見に行く', t: ['冒険好き', '動物好き'], do: (S, G) => { G.money(-x.cost); G.fx({ happy: 10, art: 4 }); return '地平線まで続くヌーの群れ。川を渡る瞬間、思わず息を止めた。'; } },
+        { label: '🚙 見に行く', t: ['冒険好き', '動物好き'], do: (S, G) => { G.pay(x.cost); G.fx({ happy: 10, art: 4 }); return '地平線まで続くヌーの群れ。川を渡る瞬間、思わず息を止めた。'; } },
         { label: '🏠 写真で我慢', do: () => 'いつか必ず、と心に決めた。' }
       ] },
     { id: 'ke_marathon', emoji: '🏅', title: '村のマラソン大会', min: 10, max: 40,
