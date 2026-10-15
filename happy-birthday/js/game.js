@@ -731,7 +731,10 @@
     const a = S.me.age, F = fm();
     let p;
     if (S.love.everMarried && S.love.lastEnd != null && a - S.love.lastEnd <= 10) p = 40;
-    else p = Math.max(10, 80 - 5 * Math.abs(a - F));
+    else p = Math.max(25, 80 - 3 * Math.abs(a - F));
+    // 付き合いが長いほど成功しやすい（交際1年ごとに+5%、最大+20%）
+    const lv = lover();
+    if (lv) p += Math.min(20, 5 * Math.max(0, a - lv.since));
     if (has('family')) p += 10;
     if (has('wolf')) p -= 10;
     return clamp(Math.round(p), 1, 95);
@@ -798,6 +801,8 @@
     log(`💍 ${fullName(p)}と結婚した！`, 'love');
     hl(`${p.first}と結婚した`, 9);
     applyFx({ happy: 15 });
+    S.love.wantKids = false;
+    if (S.me.age <= 60) addSpecial({ type: 'kids' });
     if (!S.indep && !isStudent()) becomeIndependent();
   }
   function breakUp(byThem) {
@@ -818,8 +823,6 @@
     if (!p.alive) return;
     if (p.status === 'lover') {
       if (chance(splitRate(p) / 100)) { breakUp(true); return; }
-      // 相手からのプロポーズ
-      if (S.me.age >= 18 && p.age >= 18 && S.me.age - p.since >= 1 && chance(marryRate() / 300)) addSpecial({ type: 'proposal' });
     } else if (p.status === 'spouse') {
       // 夫婦の危機（4年に1度くらい）→ そのときの離婚率で判定
       if (chance(0.25) && chance(splitRate(p) / 100)) {
@@ -833,7 +836,7 @@
       if (S.love.wantKids) {
         const kids = S.fam.kids.length;
         let rate = { poor: 0.32, low: 0.27, mid: 0.22, upper: 0.2, rich: 0.17 }[live().tier];
-        if (bearer == null) rate *= 0.25; // 養子
+        if (bearer == null) rate = 0;
         else { const b = bearer; rate *= b < 18 ? 0 : b <= 30 ? 1 : b <= 35 ? 0.75 : b <= 40 ? 0.45 : b <= 44 ? 0.15 : 0; }
         rate *= kids < 2 ? 1 : kids === 2 ? 0.55 : kids === 3 ? 0.3 : 0.12;
         if (has('family')) rate *= 1.3;
@@ -841,6 +844,59 @@
         if (chance(rate)) haveKid(bearer == null);
       }
     }
+  }
+  // ---------------- 適齢期の自動イベント（出会い・プロポーズ）と子どもの相談
+  function loveEvents() {
+    const a = S.me.age, F = fm();
+    const p = S.fam.partner;
+    if (!p || !p.alive) {
+      const recent = S.love.lastEnd != null && a - S.love.lastEnd <= 10;
+      if (a >= 16 && ((a >= F - 8 && a <= F + 12) || recent) && chance(loveRate() / 100 * 0.6)) {
+        addSpecial({ type: 'meet', cand: makePartner() });
+      }
+      return;
+    }
+    if (p.status === 'lover' && a >= 18 && p.age >= 18 && a - p.since >= 1 && a >= F - 5 && a <= F + 15 && chance(0.5)) {
+      addSpecial({ type: 'proposal', from: chance(0.5) ? 'them' : 'me' });
+    }
+    if (p.status === 'spouse' && a <= 60 && p.marriedAt != null && a > p.marriedAt && (a - p.marriedAt) % 3 === 0) {
+      addSpecial({ type: 'kids' });
+    }
+  }
+  function meetAnswer(yes) {
+    const sp = S.yr.special.find(x => x.type === 'meet' && !x.done);
+    if (!sp) return;
+    sp.done = true;
+    const c = sp.cand;
+    if (!yes || S.fam.partner) { sp.result = '付き合わない'; log(`🍃 ${c.first}からの好意に、今回はこたえなかった。`, 'love'); return; }
+    sp.result = `${c.first}と付き合う`;
+    c.since = S.me.age; c.status = 'lover';
+    S.fam.partner = c;
+    log(`💕 ${C(c.country).flag} ${fullName(c)}（${c.age}歳・${c.job}）と付き合うことになった！`, 'love');
+    hl(`${c.first}と恋人になった`, 3);
+    applyFx({ happy: 8 });
+  }
+  function kidsAnswer(mode) {
+    const sp = S.yr.special.find(x => x.type === 'kids' && !x.done);
+    if (sp) sp.done = true;
+    if (mode === 'want') { S.love.wantKids = true; if (sp) sp.result = 'そろそろ子どもを考える'; log('🍼 パートナーと、そろそろ子どものことを考えようと話し合った。', 'family'); }
+    else if (mode === 'later') { S.love.wantKids = false; if (sp) sp.result = 'まだ子どもはいい'; log('☕ 子どものことは、もう少し先に考えることにした。', 'family'); }
+    else { if (sp) sp.result = '養子を迎える'; adoptKid(); }
+  }
+  function adoptKid() {
+    // 同じ国、または近隣の（先進国ではない）国の0〜11歳の子
+    const nb = (C(S.me.live).nb || []).filter(c => H.countryMap[c] && C(c).tier !== 'rich');
+    const code = nb.length && chance(0.4) ? pick(nb) : S.me.live;
+    const g = chance(0.5) ? 'm' : 'f';
+    const age = rnd(0, 11);
+    const p = spouse();
+    const last = (S.me.gender === 'm' || !p || p.gender === 'f') ? S.me.last : p.last;
+    const job = age < 3 ? '赤ちゃん' : age < 6 ? '幼児' : '小学生';
+    const k = makePerson({ rel: g === 'm' ? '息子' : '娘', gender: g, age, country: code, first: newFirst(code, g), last, job, sal: 0, kids: [], traits: age >= 3 ? randomTraits(3) : [], adopted: true });
+    S.fam.kids.push(k);
+    log(`🤝 ${C(code).flag} ${C(code).name}生まれの${age}歳の${g === 'm' ? '男の子' : '女の子'}、${k.first}を養子として家族に迎えた！`, 'family');
+    hl(`養子の${k.first}を家族に迎えた`, 8);
+    applyFx({ happy: 10 });
   }
   function haveKid(adopt) {
     const g = chance(0.512) ? 'm' : 'f';
@@ -1340,6 +1396,8 @@
       case 'sick': treat(canPay(S.sick ? S.sick.cost : 0) ? 'treat' : 'wait'); break;
       case 'scout': scout(chance(0.3)); break;
       case 'proposal': answerProposal(chance(0.7)); break;
+      case 'meet': meetAnswer(chance(0.6)); break;
+      case 'kids': kidsAnswer(pick(['want', 'want', 'want', 'later', 'later', 'adopt'])); break;
       case 'abroad': abroadDecide(S.abroad ? 'stay' : 'no'); break;
       case 'abroadEnd': abroadEnd('back'); break;
       case 'retire': retire('retire'); break;
@@ -1392,8 +1450,15 @@
     if (sp) sp.done = true;
     const p = lover();
     if (!p) return;
-    if (yes) { if (sp) sp.result = 'はい'; log(`💐 ${p.first}からプロポーズされた！`, 'love'); marry(); }
-    else { if (sp) sp.result = 'ごめんなさい'; log(`🙇 ${p.first}からのプロポーズを断った。`, 'love'); if (chance(0.5)) breakUp(true); }
+    if (sp && sp.from === 'me') {
+      if (!yes) { sp.result = 'まだプロポーズしない'; log(`💭 ${p.first}へのプロポーズは、もう少し先にすることにした。`, 'love'); return; }
+      if (S.yr.propose) { sp.result = '今年はもうプロポーズした'; return; }
+      const r = propose();
+      sp.result = r && r.ok ? '結婚した！' : 'プロポーズは保留に';
+      return;
+    }
+    if (yes) { if (sp) sp.result = '結婚する'; log(`💐 ${p.first}からプロポーズされた！`, 'love'); marry(); }
+    else { if (sp) sp.result = '結婚しない'; log(`🙇 ${p.first}からのプロポーズを断った。`, 'love'); if (chance(0.3)) breakUp(true); }
   }
 
   // =============================================================
@@ -1424,6 +1489,7 @@
     yearlyPets();
     yearlyFamily();
     yearlyLove();
+    loveEvents();
     stageTransition();
     setAllowance();
 
@@ -1600,7 +1666,7 @@
     trySchool: act(trySchool), skipSchool: act(skipSchool), careChoice: act(careChoice), joinClub: act(joinClub), quitClub: act(quitClub),
     findHobby: act(findHobby), dropHobby: act(dropHobby), tryJob: act(tryJob), quitJob: act(quitJob), togglePart: act(togglePart),
     careerSkip: act(careerSkip), work12: act(work12), retire: act(retire), treat: act(treat), scout: act(scout),
-    abroadDecide: act(abroadDecide), abroadEnd: act(abroadEnd), answerProposal: act(answerProposal),
+    abroadDecide: act(abroadDecide), abroadEnd: act(abroadEnd), answerProposal: act(answerProposal), meetAnswer: act(meetAnswer), kidsAnswer: act(kidsAnswer),
     findLove: act(findLove), propose: act(propose), breakUp: act(() => breakUp(false)), adoptPet: act(adoptPet), buyHouse: act(buyHouse),
     setPref: act(v => { S.love.pref = v; }), setWantKids: act(v => { S.love.wantKids = v; })
   };

@@ -196,7 +196,7 @@
   }
   function specialCard(sp, i) {
     const S = G.S;
-    const titles = { kinder: '🧸 幼稚園・保育園', care: '🤲 だれに見てもらう？', school: '🏫 進学先を選ぶ', club: '🎽 クラブ・部活・サークル', uni: '🎓 大学受験', grad: '🎓 大学院へ進む？', career: '💼 これからの進路', work12: '🧺 これからの暮らし', sick: '🤒 病気になった', scout: '🌟 スカウトされた！', proposal: '💐 プロポーズされた！', abroad: '✈️ 留学', abroadEnd: '🌍 卒業後はどこで暮らす？', retire: '🌅 65歳、これからの働き方' };
+    const titles = { kinder: '🧸 幼稚園・保育園', care: '🤲 だれに見てもらう？', school: '🏫 進学先を選ぶ', club: '🎽 クラブ・部活・サークル', uni: '🎓 大学受験', grad: '🎓 大学院へ進む？', career: '💼 これからの進路', work12: '🧺 これからの暮らし', sick: '🤒 病気になった', scout: '🌟 スカウトされた！', proposal: '💐 プロポーズ', meet: '💕 すてきな出会い', kids: '🍼 子どものこと', abroad: '✈️ 留学', abroadEnd: '🌍 卒業後はどこで暮らす？', retire: '🌅 65歳、これからの働き方' };
     let title = titles[sp.type] || '大事な選択';
     if (sp.type === 'school') title = `🏫 ${H.STAGES[sp.stage].n}を選ぶ`;
     if (sp.type === 'club') title = `🎽 ${G.clubWord(sp.stage)}を選ぶ`;
@@ -290,7 +290,26 @@
       case 'proposal': {
         const p = G.lover();
         if (!p) return '';
-        body = `<p class="note">${esc(p.first)}（${p.age}歳・${esc(p.job)}）から「結婚してください」と言われた！</p><div class="btn-row"><button class="btn primary" type="button" data-prop="1">💍 はい、よろこんで</button><button class="btn ghost" type="button" data-prop="0">ごめんなさい</button></div>`;
+        if (sp.from === 'me') {
+          title = '💍 プロポーズしようかな';
+          body = `${profileBox(p)}<p class="note">${esc(p.first)}にプロポーズしようと思います。</p><div class="btn-row"><button class="btn primary" type="button" data-prop="1">💍 プロポーズする（${G.marryRate()}%）</button><button class="btn ghost" type="button" data-prop="0">まだしない</button></div>`;
+        } else {
+          title = '💐 プロポーズされた！';
+          body = `${profileBox(p)}<p class="note">${esc(p.first)}にプロポーズされました！「結婚してください」</p><div class="btn-row"><button class="btn primary" type="button" data-prop="1">💍 結婚する</button><button class="btn ghost" type="button" data-prop="0">結婚しない</button></div>`;
+        }
+        break;
+      }
+      case 'meet': {
+        const c = sp.cand;
+        body = `${profileBox(c)}<p class="note">${esc(c.first)}から「付き合ってください」と言われた！</p><div class="btn-row"><button class="btn primary" type="button" data-meet="1">💕 付き合う</button><button class="btn ghost" type="button" data-meet="0">付き合わない</button></div>`;
+        break;
+      }
+      case 'kids': {
+        const p = G.spouse();
+        body = `<p class="note">${p ? esc(p.first) + 'と、' : ''}子どものことを話し合った。</p><div class="opts">
+          <button class="opt" type="button" data-kids2="want"><span class="oe">🍼</span><span><span class="on">そろそろ子どもを考える</span></span><span class="or"></span></button>
+          <button class="opt" type="button" data-kids2="later"><span class="oe">☕</span><span><span class="on">まだ子どもはいい</span></span><span class="or"></span></button>
+          <button class="opt" type="button" data-kids2="adopt"><span class="oe">🤝</span><span><span class="on">養子を迎える</span><span class="os"><span class="chip">0〜11歳の子</span></span></span><span class="or"></span></button></div>`;
         break;
       }
       case 'abroad': {
@@ -315,6 +334,12 @@
       }
     }
     return `<div class="card must" data-sp="${i}"><div class="card-h"><h3>${title}</h3><span class="tag">❗ 大事な選択</span></div>${body}</div>`;
+  }
+  // 相手のプロフィール（名前・性別・年齢・性格）
+  function profileBox(p) {
+    const c = H.countryMap[p.country];
+    return `<div class="cur" style="display:grid;gap:4px"><span><b>${c ? c.flag : ''} ${esc(G.fullName(p))}</b>　${p.gender === 'f' ? '女性' : '男性'}・${p.age}歳・${esc(p.job)}</span>
+      <span class="chips" style="display:flex;flex-wrap:wrap;gap:4px">${(p.traits || []).map(t => `<span class="chip">${H.TRAIT[t].e}${H.TRAIT[t].name}</span>`).join('')}</span></div>`;
   }
   function jobList(inCard) {
     const S = G.S;
@@ -346,6 +371,8 @@
     box.querySelectorAll('[data-sick]').forEach(b => b.onclick = () => G.treat(b.dataset.sick));
     box.querySelectorAll('[data-scout]').forEach(b => b.onclick = () => G.scout(b.dataset.scout === '1'));
     box.querySelectorAll('[data-prop]').forEach(b => b.onclick = () => G.answerProposal(b.dataset.prop === '1'));
+    box.querySelectorAll('[data-meet]').forEach(b => b.onclick = () => G.meetAnswer(b.dataset.meet === '1'));
+    box.querySelectorAll('[data-kids2]').forEach(b => b.onclick = () => G.kidsAnswer(b.dataset.kids2));
     box.querySelectorAll('[data-ab]').forEach(b => b.onclick = () => { G.abroadDecide(b.dataset.ab); const sp = G.S.yr.special.find(x => x.type === 'abroad'); if (sp && sp.result) toast(sp.result); });
     box.querySelectorAll('[data-abgo]').forEach(b => b.onclick = () => G.abroadDecide('go', b.dataset.abgo));
     box.querySelectorAll('[data-abend]').forEach(b => b.onclick = () => G.abroadEnd(b.dataset.abend));
