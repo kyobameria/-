@@ -313,8 +313,10 @@
     if (st.iq) { if (S.stats.intel >= st.iq[1]) r += 10; else if (S.stats.intel >= st.iq[0]) r += 5; }
     if (stage === 'high' && track === 'sport' && sportPts() >= 5) r += 10;
     if (stage === 'uni' && fac === 'sport' && sportPts() >= 6) r += 10;
-    r = r * birth().edu[STAGE_EDU_IDX[stage]];
-    if (S.me.live !== S.me.country) r = r * C(S.me.live).edu[STAGE_EDU_IDX[stage]];
+    // 国の進学補正（マイナスのみ・下限0.6倍）
+    let f = birth().edu[STAGE_EDU_IDX[stage]];
+    if (S.me.live !== S.me.country) f *= C(S.me.live).edu[STAGE_EDU_IDX[stage]];
+    r = r * Math.max(0.6, Math.min(1, f));
     return clamp(Math.round(r), 0, 100);
   }
   function fee(stage, tier) {
@@ -1065,10 +1067,13 @@
   }
   function sicknessRoll() {
     if (S.sick) return;
-    const notSick = clamp((S.stats.health * 2 + S.stats.stamina) / 2.5, 5, 95) / 100;
-    let mentalRisk = S.me.age >= 13 && S.stats.mental < 25 ? 0.25 : 0;
-    if (!chance(1 - notSick) && !chance(mentalRisk)) return;
+    // 病気になる確率 =（100 − 基本値）× 0.35 × 年齢の補正　基本値 =（健康×2＋体力）÷2.5（5〜95）
     const a = S.me.age;
+    const base = clamp((S.stats.health * 2 + S.stats.stamina) / 2.5, 5, 95);
+    const ageMul = a <= 5 ? 1.3 : a <= 49 ? 1 : a <= 64 ? 1.3 : a <= 74 ? 1.6 : 2;
+    const sickRate = (100 - base) * 0.35 * ageMul / 100;
+    let mentalRisk = a >= 13 && S.stats.mental < 25 ? 0.25 * 0.35 : 0;
+    if (!chance(sickRate) && !chance(mentalRisk)) return;
     const reg = live().region;
     const ws = a < 30 ? [0.86, 0.12, 0.02] : a < 60 ? [0.65, 0.27, 0.08] : [0.45, 0.33, 0.22];
     let sev = 1 + wpickIndex(ws);
