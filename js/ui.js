@@ -67,6 +67,7 @@
           '<div class="pf-tags">' +
             '<span class="tag">💼 ' + esc(G.jobName()) + '</span>' +
             '<span class="tag">🎓 ' + esc(DATA.eduNames[S.edu]) + '</span>' +
+            (S.cls ? '<span class="tag star" title="' + esc(S.cls.desc) + '">⭐' + S.cls.star + ' ' + esc(S.cls.label) + '</span>' : '') +
             (sp ? '<span class="tag pink">💍 既婚</span>' : G.person('恋人') ? '<span class="tag pink">💗 恋人あり</span>' : '') +
             (S.house ? '<span class="tag">🏡 持ち家</span>' : '') +
           '</div>' +
@@ -149,7 +150,7 @@
       ['思い出の人', p => !p.alive || p.rel === '元配偶者']
     ];
     let html = '<div class="me-card card-lite"><h3>🙋 あなた</h3>' + rowsTable([
-      ['👤 名前', G.myName()], ['🎂 年齢', S.age + '歳'], ['🌏 出身', G.c().flag + G.c().name + '・' + S.city], ['💼 職業', G.jobName()], ['💴 年収', S.income ? G.fmt(S.income) : 'なし'], ['🎓 学歴', DATA.eduNames[S.edu]], ['💍 結婚歴', (S.marriedCount || 0) + '回'], ['🧒 子ども', G.kids(true).length + '人']
+      ['👤 名前', G.myName()], ['🎂 年齢', S.age + '歳'], ['🌏 出身', G.c().flag + G.c().name + '・' + S.city], ['🏷️ 生まれの階級', S.cls ? G.classText() + '・' + S.cls.desc : '—'], ['💼 職業', G.jobName()], ['💴 年収', S.income ? G.fmt(S.income) : 'なし'], ['🎓 学歴', DATA.eduNames[S.edu]], ['💍 結婚歴', (S.marriedCount || 0) + '回'], ['🧒 子ども', G.kids(true).length + '人']
     ].concat(G.moneyRows().filter(r => !/あなたの年収|父の年収|母の年収/.test(r[0])))) + '</div>';
     groups.forEach(g => {
       const ps = S.people.filter(g[1]);
@@ -263,6 +264,7 @@
       '<div class="end-grid">' +
         endBox('💼', '最後の仕事', S.retired ? '年金生活' : G.jobName()) +
         endBox('🎓', '最終学歴', DATA.eduNames[S.edu]) +
+        endBox('🏷️', '生まれの階級', S.cls ? '⭐' + S.cls.star + ' ' + S.cls.label : '—') +
         endBox('💍', '結婚', (S.marriedCount || 0) + '回') +
         endBox('🧒', '子ども', sm.kids.length + '人') +
         endBox('👶', '孫', sm.grand.length + '人') +
@@ -307,7 +309,7 @@
     $('#btn-custom').addEventListener('click', () => $('#custom').classList.toggle('hidden'));
     $('#btn-custom-go').addEventListener('click', () => {
       const name = $('#in-name').value.trim();
-      startGame({ country: $('#sel-country').value || null, gender: $('#sel-gender').value || null, first: name || null });
+      startGame({ country: $('#sel-country').value || null, gender: $('#sel-gender').value || null, first: name || null, cls: +$('#sel-class').value || null });
     });
     $('#btn-continue').addEventListener('click', () => {
       if (Game.load()) { $('#start').classList.add('hidden'); $('#app').classList.remove('hidden'); render(); }

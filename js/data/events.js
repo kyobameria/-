@@ -21,7 +21,7 @@ DATA.events = [
       { label: '🎺 吹奏楽部・合唱部', sub: '感性・社交性アップ', t: ['芸術家肌'], do: (S, G) => { G.fx({ art: 9, social: 4 }); S.club = '吹奏楽部'; return '最初は音すら出なかった楽器。夏のコンクールで、みんなの音が一つになった。'; } },
       { label: '🖼️ 美術部・漫画研究部', sub: '感性大幅アップ', t: ['芸術家肌'], do: (S, G) => { G.fx({ art: 12, mind: 3 }); S.club = '美術部'; return '静かな美術室で、絵の具の匂いに包まれる時間が好きになった。'; } },
       { label: '🔬 科学部・パソコン部', sub: '知性アップ', t: ['好奇心旺盛'], do: (S, G) => { G.fx({ smarts: 10, social: 2 }); S.club = '科学部'; return 'ペットボトルロケットを校舎の3階より高く飛ばした。顧問の先生が一番はしゃいでいた。'; } },
-      { label: '🏠 帰宅部', sub: '心の余裕アップ', t: ['のんびり屋'], do: (S, G) => { G.fx({ mind: 8, happy: 3 }); S.club = '帰宅部'; return '帰宅部エース。夕方のアニメを一話も見逃さなかった。'; } }
+      { label: '🏠 帰宅部', sub: 'メンタルアップ', t: ['のんびり屋'], do: (S, G) => { G.fx({ mind: 8, happy: 3 }); S.club = '帰宅部'; return '帰宅部エース。夕方のアニメを一話も見逃さなかった。'; } }
     ]
   },
   {
@@ -79,7 +79,7 @@ DATA.events = [
     choices: () => [
       { label: '💼 就職活動をする', sub: '大卒の求人から選べる', do: (S, G) => { S.school = 'none'; S.edu = 4; G.queue('jobhunt'); return 'リクルートスーツに袖を通した。似合っているかは、まだわからない。'; } },
       { label: '🔬 大学院に進む', sub: '2年間・医師や弁護士を目指せる', t: ['努力家'], do: (S, G) => { S.school = 'grad'; S.schoolYears = 0; S.edu = 4; G.fx({ smarts: 6 }); S.debt += Math.round(G.avg() * 0.3); return '研究室の窓から見える夕焼けが、だんだん日常になっていった。'; } },
-      { label: '🌱 しばらく自分探しをする', sub: '心の余裕アップ・収入なし', t: ['自由人'], do: (S, G) => { S.school = 'none'; S.edu = 4; G.fx({ mind: 10, happy: 4 }); return '少し立ち止まることにした。焦らなくても、道はきっと見つかる。'; } }
+      { label: '🌱 しばらく自分探しをする', sub: 'メンタルアップ・収入なし', t: ['自由人'], do: (S, G) => { S.school = 'none'; S.edu = 4; G.fx({ mind: 10, happy: 4 }); return '少し立ち止まることにした。焦らなくても、道はきっと見つかる。'; } }
     ]
   },
   {
@@ -88,7 +88,7 @@ DATA.events = [
     info: (S, G) => [{ title: 'お金のこと', rows: G.moneyRows().concat([['🧓 年金（年間）', G.fmt(G.avg() * 0.35)]]) }],
     text: (S, G) => '長年勤めた「' + G.jobName() + '」の仕事。そろそろ引退を考える時期がきた。',
     choices: () => [
-      { label: '🌅 引退する', sub: '年金生活・心の余裕アップ', t: ['のんびり屋'], do: (S, G) => { S.flags.retireAsked = true; G.retire(); G.fx({ mind: 12, happy: 6 }); return '最後の出勤日。花束をもらって、少し泣いた。明日からは、自分の時間だ。'; } },
+      { label: '🌅 引退する', sub: '年金生活・メンタルアップ', t: ['のんびり屋'], do: (S, G) => { S.flags.retireAsked = true; G.retire(); G.fx({ mind: 12, happy: 6 }); return '最後の出勤日。花束をもらって、少し泣いた。明日からは、自分の時間だ。'; } },
       { label: '💪 まだまだ働く', sub: '収入は続くが体力が必要', t: ['努力家'], do: (S, G) => { S.flags.retireAsked = true; S.income = Math.round(S.income * 0.7); G.fx({ smarts: 2, health: -2 }); return '「まだ若いもんには負けない」。働き続けることを選んだ。'; } }
     ]
   },

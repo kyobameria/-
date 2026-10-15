@@ -8,7 +8,7 @@
   const STATS = [
     { key: 'health',  name: '健康',     emoji: '❤️', color: 'var(--c-health)' },
     { key: 'happy',   name: '幸福',     emoji: '😊', color: 'var(--c-happy)' },
-    { key: 'mind',    name: '心の余裕', emoji: '🍃', color: 'var(--c-mind)' },
+    { key: 'mind',    name: 'メンタル', emoji: '🍃', color: 'var(--c-mind)' },
     { key: 'smarts',  name: '知性',     emoji: '📚', color: 'var(--c-smarts)' },
     { key: 'looks',   name: '外見',     emoji: '✨', color: 'var(--c-looks)' },
     { key: 'fitness', name: '体力',     emoji: '💪', color: 'var(--c-fitness)' },
@@ -429,11 +429,12 @@
     }
     const kids = 1 + S.people.filter(p => ['兄', '姉'].includes(p.rel)).length;
     dad.kidsCount = mom.kidsCount = kids;
-    S.familySavings = Math.round((dad.income + mom.income) * G.rf(0.2, 1.8));
+    S.cls = applyClass(c, dad, mom, opt.cls);
 
     const prob = Math.round(DATA.WORLD_POP / c.pop);
     G.log('👶 ' + START_YEAR + '年、' + c.flag + c.name + 'の' + S.city + 'で、' + (gender === 'm' ? '男の子' : '女の子') + 'として生まれた。', 'big');
     G.log('📛 名前は「' + G.myName() + '」。', 'ev');
+    G.log('🏷️ 生まれの階級：' + G.classText() + '。' + S.cls.desc + 'に生まれた。', S.cls.star === 3 ? 'ev' : 'big');
     G.log('👨‍👩‍👧 父は' + G.name(dad) + '（' + dad.age + '歳・' + dad.job + '）、母は' + G.name(mom) + '（' + mom.age + '歳・' + mom.job + '）。', 'ev');
     const olders = S.people.filter(p => p.age > 0 && ['兄', '姉'].includes(p.rel));
     if (olders.length) G.log('🧒 ' + olders.map(p => p.rel + 'の' + p.first + '（' + p.age + '歳）').join('、') + 'が、小さな手をのぞき込んでいる。', 'ev');
@@ -448,6 +449,46 @@
     UI.toast(c.flag + ' ' + c.name + 'に生まれた！');
     save();
   }
+
+  // ================= 生まれの階級 =================
+  // ⭐1〜5 を決め、親の仕事・年収・家の貯金・生まれたときの能力に反映する
+  function applyClass(c, dad, mom, forced) {
+    const odds = DATA.classOdds[DATA.countryTier[c.code] || 'mid'];
+    const star = forced || (G.wpick([1, 2, 3, 4, 5], n => odds[n - 1]));
+    const def = DATA.classes[star];
+    const avg = c.avg;
+    let desc = '';
+    if (star === 5) {
+      const el = G.pick(def.elites.concat((def.elitesBy[c.code] || [])));
+      desc = el.desc.replace('{country}', c.name);
+      dad.job = el.job; dad.income = Math.round(avg * G.rf(el.pay[0], el.pay[1]));
+      if (G.chance(0.5)) { mom.job = G.pick(['慈善財団の理事', '画廊のオーナー', '一族の会社の役員']); mom.income = Math.round(avg * G.rf(1.5, 5)); }
+      else { mom.job = '専業主婦'; mom.income = 0; }
+    } else if (star === 4) {
+      const j = DATA.jobById[G.pick(def.jobIds)];
+      dad.job = j.name; dad.income = Math.round(avg * j.pay * G.rf(def.income[0], def.income[1]) / 1.6);
+      if (mom.income) mom.income = Math.round(mom.income * G.rf(1.2, 1.8));
+      desc = j.name + 'の家庭（富裕層）';
+    } else if (star === 1) {
+      [dad, mom].forEach(p => {
+        if (p === mom && G.chance(0.3)) { p.job = '無職'; p.income = 0; return; }
+        p.job = G.pick(def.jobs); p.income = Math.round(avg * G.rf(def.income[0], def.income[1]));
+      });
+      desc = G.pick(def.descs.concat(def.descsBy[c.code] || []));
+    } else {
+      const low = DATA.jobs.filter(j => !j.partTime && !j.volatile && j.pay <= 1.1);
+      [dad, mom].forEach(p => {
+        if (star === 2 && p.income > avg * 0.9) { const j = G.pick(low.filter(x => x.pay <= 0.8)); p.job = j.name; }
+        if (p.income) p.income = Math.round(p.income * G.rf(def.income[0], def.income[1]));
+      });
+      desc = G.pick(def.descs);
+    }
+    S.familySavings = Math.round(avg * G.rf(def.save[0], def.save[1]));
+    Object.keys(def.stats).forEach(k => { S.stats[k] = G.clamp(S.stats[k] + def.stats[k], 5, 100); });
+    return { star, label: def.label, desc };
+  }
+  G.classStars = () => S.cls ? '⭐'.repeat(S.cls.star) : '';
+  G.classText = () => S.cls ? G.classStars() + '（' + S.cls.label + '）' : '—';
 
   // ================= 1年進める =================
   function ageUp() {
@@ -573,11 +614,13 @@
     // 実家の家計
     const famInc = (d ? d.income : 0) + (m ? m.income : 0);
     const kidsAtHome = 1 + S.people.filter(p => ['兄', '姉', '弟', '妹'].includes(p.rel) && p.alive && p.age >= 0 && p.age < 22).length;
-    if (d || m) S.familySavings = Math.round(S.familySavings + famInc * 0.85 - avg * (0.45 + 0.1 * kidsAtHome));
+    // 階級によって暮らしの規模（生活費）も変わる
+    const lifeScale = S.cls ? [1, 0.45, 0.75, 1, 1.6, 4][S.cls.star] : 1;
+    if (d || m) S.familySavings = Math.round(S.familySavings + famInc * 0.85 - avg * (0.45 + 0.1 * kidsAtHome) * lifeScale);
     if (S.familySavings < 0 && G.chance(0.15) && S.age < 18) G.log('💸 家計が苦しいらしい。' + G.relName('母') + 'がため息をついていた。', 'sad');
 
     if (S.age < 18) {
-      if (S.age >= 8) S.money += Math.round(avg * 0.004);
+      if (S.age >= 8) S.money += Math.round(avg * 0.004 * (S.cls ? DATA.classes[S.cls.star].allow : 1));
       if (S.job) S.money += Math.round(S.income * 0.9);
       return;
     }

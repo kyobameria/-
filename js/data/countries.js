@@ -329,3 +329,45 @@ DATA.countries = [
 
 DATA.countryByCode = {};
 DATA.countries.forEach(c => { DATA.countryByCode[c.code] = c; });
+
+// ============ 生まれの階級（⭐1〜5） ============
+// 国の豊かさによって、どの階級に生まれやすいかが変わる
+DATA.countryTier = {
+  US: 'rich', JP: 'rich', DE: 'rich', GB: 'rich', FR: 'rich', IT: 'rich', KR: 'rich', CA: 'rich',
+  CN: 'mid', RU: 'mid', MX: 'mid', TR: 'mid', BR: 'mid', TH: 'mid',
+  IN: 'low', ID: 'low', PK: 'low', NG: 'low', BD: 'low', PH: 'low', EG: 'low', VN: 'low', KE: 'low',
+  ET: 'vlow'
+};
+// ⭐1〜⭐5 の出やすさ（%）
+DATA.classOdds = {
+  rich: [3, 22, 52, 22, 1],
+  mid:  [10, 33, 42, 14, 1],
+  low:  [28, 40, 24, 7.5, 0.5],
+  vlow: [42, 35, 17, 5.5, 0.5]
+};
+// income: 親の年収の倍率 / save: 家の貯金（平均年収の何年分か）/ allow: お小遣いの倍率 / stats: 生まれたときの補正
+DATA.classes = [
+  null,
+  { star: 1, label: '極貧', income: [0.08, 0.25], save: [0, 0.1], allow: 0.2, stats: { health: -12, happy: -5, smarts: -4 },
+    descs: ['日々の食事にも困る、とても貧しい家庭', 'スラム街の小さな家で暮らす家庭', '電気も水道もない村の、とても貧しい家庭'],
+    descsBy: { IN: ['社会的に不利な立場に置かれてきた階層の、とても貧しい家庭'] },
+    jobs: ['日雇い労働者', '露天商', '廃品回収', '小作農', '家政婦', '路上の靴みがき'] },
+  { star: 2, label: '低所得', income: [0.45, 0.75], save: [0.05, 0.5], allow: 0.5, stats: { health: -5, happy: -2 },
+    descs: ['共働きでぎりぎりの生活をする家庭', '家計のやりくりに苦労する家庭', '慎ましく暮らす家庭'] },
+  { star: 3, label: '中流', income: [0.85, 1.25], save: [0.3, 1.8], allow: 1, stats: {},
+    descs: ['ごく一般的な中流家庭', '平凡だけど温かい中流家庭'] },
+  { star: 4, label: '富裕層', income: [1.6, 2.8], save: [2, 6], allow: 2.5, stats: { health: 4, smarts: 4, looks: 2 },
+    jobIds: ['doctor', 'lawyer', 'banker', 'founder', 'engineer', 'professor'] },
+  { star: 5, label: '特権階級', income: null, save: [150, 600], allow: 12, stats: { health: 6, smarts: 6, looks: 4, happy: 4 },
+    elites: [
+      { desc: '{country}の有力政治家の家', job: '大臣（国会議員）', pay: [8, 20] },
+      { desc: '世界的トップ企業のCEOの家', job: '世界的企業のCEO', pay: [40, 150] },
+      { desc: '代々続く大財閥の創業家', job: '財閥グループの会長', pay: [30, 100] },
+      { desc: '国内有数の大地主の名家', job: '大地主', pay: [15, 40] }
+    ],
+    elitesBy: {
+      IN: [{ desc: '上位カーストの名門一族', job: '名門一族の当主・大地主', pay: [20, 60] }],
+      GB: [{ desc: '由緒ある貴族の家柄', job: '伯爵家の当主', pay: [15, 50] }],
+      TH: [{ desc: '王族に連なる名家', job: '名家の当主', pay: [20, 60] }]
+    } }
+];
