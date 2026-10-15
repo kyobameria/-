@@ -36,17 +36,17 @@
   :root:not([data-theme="light"]) {
     --bg: #1d1b26; --bg2: #24212f; --card: #2a2737; --ink: #ece8f6; --ink2: #c2bcd4; --muted: #8f89a3; --line: #3a3649;
     --accent: #a597f0; --accent2: #6c5fbf; --up: #6fd6a8; --up-bg: #1f3a30; --down: #ff8fa3; --down-bg: #43262e;
-    --culture: #ffbe6b; --culture-bg: #3d3020; --mem-bg: #2f2a44; --big-bg: #3b3420; --sad-bg: #2b2f3a; --shadow: 0 4px 18px rgba(0,0,0,.3);
+    --culture: #ffbe6b; --culture-bg: #3d3020; --mem-bg: #2f2a44; --big-bg: #3b3420; --sad-bg: #2b2f3a; --shadow: 0 4px 18px rgba(0,0,0,.3); color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #1d1b26; --bg2: #24212f; --card: #2a2737; --ink: #ece8f6; --ink2: #c2bcd4; --muted: #8f89a3; --line: #3a3649;
   --accent: #a597f0; --accent2: #6c5fbf; --up: #6fd6a8; --up-bg: #1f3a30; --down: #ff8fa3; --down-bg: #43262e;
-  --culture: #ffbe6b; --culture-bg: #3d3020; --mem-bg: #2f2a44; --big-bg: #3b3420; --sad-bg: #2b2f3a; --shadow: 0 4px 18px rgba(0,0,0,.3);
+  --culture: #ffbe6b; --culture-bg: #3d3020; --mem-bg: #2f2a44; --big-bg: #3b3420; --sad-bg: #2b2f3a; --shadow: 0 4px 18px rgba(0,0,0,.3); color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+body { margin: 0; padding: 0; }
 body {
   background: var(--bg);
   color: var(--ink);
@@ -80,7 +80,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 /* ===== スタート ===== */
 .screen { min-height: 100vh; }
 .start {
-  display: flex; align-items: center; justify-content: center; padding: 32px 16px;
+  display: flex; align-items: center; justify-content: center; padding-block: 32px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
   background: radial-gradient(circle at 20% 10%, #ffe9f0 0, transparent 40%), radial-gradient(circle at 85% 30%, #e7f0ff 0, transparent 40%), radial-gradient(circle at 50% 90%, #e9fbf1 0, transparent 45%), var(--bg);
 }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .start { background: var(--bg); } }
@@ -100,16 +100,16 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 
 /* ===== ヘッダー ===== */
 .topbar {
-  position: sticky; top: 0; z-index: 20;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20;
   display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 16px; background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px);
+  padding-block: 10px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); background: color-mix(in srgb, var(--bg) 88%, transparent); backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
 }
 .logo-s { font-weight: 800; font-size: 17px; }
 .icon-btn { width: 36px; height: 36px; border-radius: 50%; background: var(--card); box-shadow: var(--shadow); }
 
 /* ===== レイアウト ===== */
-.layout { max-width: 1180px; margin: 0 auto; padding: 14px 16px 120px; display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
+.layout { max-width: 1180px; margin: 0 auto; padding-block: 14px 120px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); }
 @media (min-width: 960px) {
   .layout { grid-template-columns: 380px minmax(0, 1fr); align-items: start; }
   .side { position: sticky; top: 70px; max-height: calc(100vh - 160px); overflow-y: auto; scrollbar-width: thin; }
@@ -160,7 +160,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .stat.low .st-head { color: var(--down); }
 
 /* タブ */
-.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--card); padding: 5px; border-radius: 999px; box-shadow: var(--shadow); position: sticky; top: 62px; z-index: 10; margin-bottom: 12px; }
+.tabs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; background: var(--card); padding: 5px; border-radius: 999px; box-shadow: var(--shadow); position: sticky; top: calc(62px + env(safe-area-inset-top, 0px)); z-index: 10; margin-bottom: 12px; }
 .tabs button { padding: 8px 4px; border-radius: 999px; font-weight: 700; font-size: 13.5px; color: var(--ink2); white-space: nowrap; }
 .tabs button.on { background: var(--accent); color: #fff; }
 
@@ -245,7 +245,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .bottombar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
   display: flex; align-items: center; justify-content: center; gap: 16px;
-  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px));
   background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(10px);
   border-top: 1px solid var(--line);
 }
@@ -297,7 +297,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .fxtoast .fx { margin: 0; }
 
 /* エンディング */
-.ending { position: fixed; inset: 0; z-index: 70; overflow-y: auto; background: radial-gradient(circle at 50% 0, #efe9ff 0, transparent 50%), var(--bg); padding: 32px 16px 60px; }
+.ending { position: fixed; inset: 0; z-index: 70; overflow-y: auto; background: radial-gradient(circle at 50% 0, #efe9ff 0, transparent 50%), var(--bg); padding-block: calc(32px + env(safe-area-inset-top, 0px)) calc(60px + env(safe-area-inset-bottom, 0px)); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .ending { background: var(--bg); } }
 .ending-inner { max-width: 600px; margin: 0 auto; text-align: center; }
 .end-flag { font-size: 56px; }
@@ -326,3 +326,12 @@ button:disabled { cursor: not-allowed; opacity: .45; }
   .pf-money { gap: 4px; }
   .mv { font-size: 12.5px; }
 }
+
+/* ダークテーマを明示的に選んだとき */
+:root[data-theme="dark"] .start, :root[data-theme="dark"] .ending { background: var(--bg); }
+:root[data-theme="dark"] .k-trait { background: #322c4a; color: #cbbfff; }
+:root[data-theme="dark"] .k-act { background: #213530; }
+:root[data-theme="dark"] .k-good { background: #213529; }
+:root[data-theme="dark"] .klabel { background: rgba(255,255,255,.1) !important; color: var(--ink2) !important; }
+:root[data-theme="dark"] .tag.pink { background: #4a2a35; color: #ffb3c4; }
+:root[data-theme="dark"] .pf-avatar { background: #3a3350; }

@@ -334,8 +334,11 @@
       if (t.id === 'btn-help') { openModal($('#help-tpl').innerHTML + '<button class="primary" id="close-modal">とじる</button>'); return; }
       if (t.id === 'btn-home') {
         if (Game.Q.length) return;
-        if (!Game.S.alive || confirm('タイトルに戻りますか？（この人生は保存されています）')) showStart();
+        if (!Game.S.alive) { showStart(); return; }
+        openModal('<div class="ev-emoji">🏠</div><h2 class="ev-title">タイトルに戻りますか？</h2><p class="ev-text">この人生は保存されています。「続きから」でまた再開できます。</p><div class="choices"><button class="choice" id="go-home"><span class="c-label">🏠 タイトルに戻る</span></button><button class="choice" id="close-modal"><span class="c-label">↩ ゲームを続ける</span></button></div>');
         return;
+      }
+      if (t.id === 'go-home') { closeModal(); showStart(); return;
       }
       if (t.id === 'btn-ending') { showEnding(); return; }
     });
