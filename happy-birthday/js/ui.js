@@ -161,9 +161,8 @@
     if (c.done) return doneCard('🎯 今年の行動', c.result);
     const opts = c.opts.map((o, k) => {
       const a = G.actionDef(o.i);
-      const tags = (o.low ? '<span class="chip low">⬇ いちばん低いステータス</span>' : '') + (o.high ? '<span class="chip high">⬆ 得意をのばす</span>' : '');
       const ok = G.canPay(o.cost);
-      return `<button class="opt" type="button" data-act="${k}" ${ok ? '' : 'disabled'}><span class="oe">${a.e}</span><span><span class="on">${esc(a.n)}</span><span class="os">${fxChips(a.fx)}${tags}</span></span><span class="or">${o.cost ? `<b>${yen(o.cost)}</b>${ok ? '' : 'お金が足りない'}` : '<b>無料</b>'}</span></button>`;
+      return `<button class="opt" type="button" data-act="${k}" ${ok ? '' : 'disabled'}><span class="oe">${a.e}</span><span><span class="on">${esc(a.n)}</span><span class="os">${fxChips(a.fx)}</span></span><span class="or">${o.cost ? `<b>${yen(o.cost)}</b>${ok ? '' : 'お金が足りない'}` : '<b>無料</b>'}</span></button>`;
     }).join('');
     return `<div class="card"><div class="card-h"><h3>🎯 今年の行動</h3><span class="tag">ステータスを育てる</span></div><div class="opts">${opts}</div></div>`;
   }
@@ -171,14 +170,9 @@
     const S = G.S, c = S.yr.trait;
     if (c.done) return doneCard('🧬 性格のタネ', c.result);
     const opts = c.opts.map((o, k) => {
-      const t = H.TRAIT[o.id];
-      const pts = S.traits.pts[o.id] || 0;
-      const got = S.traits.has.includes(o.id);
-      const need = H.TRAIT_NEED[t.stage];
-      return `<button class="opt" type="button" data-trait="${k}"><span class="oe">${t.e}</span><span><span class="on">${esc(o.text)}</span><span class="os"><span class="chip ${got ? 'got' : ''}">${t.e} ${t.name}${got ? '（持っている）' : ` ${pts}/${need}pt`}</span></span></span><span class="or"></span></button>`;
+      return `<button class="opt" type="button" data-trait="${k}"><span class="oe">🌱</span><span><span class="on">${esc(o.text)}</span></span><span class="or"></span></button>`;
     }).join('');
-    const stage = S.me.age <= 5 ? '0〜5歳：1つだけ芽生える' : S.me.age <= 11 ? '6〜11歳：3つまで' : '12歳〜：5つまで';
-    return `<div class="card"><div class="card-h"><h3>🧬 性格のタネ</h3><span class="tag">${stage}</span></div><p class="note">どんなふうに過ごした？ 同じ方向を選び続けると、その性格が芽生えます。</p><div class="opts">${opts}</div></div>`;
+    return `<div class="card"><div class="card-h"><h3>🧬 性格のタネ</h3></div><p class="note">今年はどんなふうに過ごした？</p><div class="opts">${opts}</div></div>`;
   }
   function hobbyCard() {
     const S = G.S, c = S.yr.hobby;
@@ -188,12 +182,12 @@
       const lv = G.hobbyLevel(G.hp(h.id));
       return `<button class="opt" type="button" data-hob="${h.id}"><span class="oe">${d.e}</span><span><span class="on">${d.n}を楽しむ${h.club ? `<span class="muted small">（${G.clubWord(S.school ? S.school.stage : 'elem')}）</span>` : ''}</span><span class="os">${fxChips(d.fx)}<span class="chip">Lv.${lv.lv}・${G.hp(h.id)}pt</span></span></span><span class="or">+1pt</span></button>`;
     }).join('') + `<button class="opt" type="button" data-hob="none"><span class="oe">☁️</span><span><span class="on">どれも楽しまない</span></span><span class="or"></span></button>`;
-    return `<div class="card"><div class="card-h"><h3>🎨 趣味の時間</h3><span class="tag">楽しむとスキルが育つ</span></div><div class="opts">${opts}</div></div>`;
+    return `<div class="card"><div class="card-h"><h3>🎨 趣味の時間</h3></div><div class="opts">${opts}</div></div>`;
   }
 
   // ---------------- 大事な選択カード
   function schoolOptHtml(o) {
-    const lock = o.lock ? `<span class="chip lock">🔒 ${esc(o.lock)}</span>` : '';
+    const lock = '';
     const feeTxt = o.fee ? `年${yen(o.fee)}` : (o.free ? '授業料免除' : '無料');
     return `<button class="opt ${o.lock ? 'locked' : ''}" type="button" data-school='${esc(JSON.stringify({ stage: o.stage, tier: o.tier, track: o.track, fac: o.fac, esc: !!o.esc, name: o.name, fee: o.fee }))}' ${o.lock ? 'disabled' : ''}>
       <span class="oe">${o.esc ? '🛗' : ['🏰', '🏫', '🏠'][o.tier]}</span>
@@ -210,7 +204,7 @@
     let body = '';
     switch (sp.type) {
       case 'kinder': {
-        body = `<p class="note">選んだところに通えなかったときは、その下の段の合格率で判定します。⭐の数（家庭の階級）で通いやすさが変わります。</p><div class="opts">${G.schoolOptions('kinder').map(schoolOptHtml).join('')}</div>`;
+        body = `<div class="opts">${G.schoolOptions('kinder').map(schoolOptHtml).join('')}</div>`;
         break;
       }
       case 'school': {
@@ -222,20 +216,17 @@
           opts.forEach(o => { const k = o.esc ? 'esc' : o.track; (by[k] = by[k] || []).push(o); });
           lists = Object.keys(by).map(k => `<div class="muted small" style="font-weight:700">${k === 'esc' ? '内部進学' : H.HS_TRACKS[k].n}</div><div class="opts">${by[k].map(schoolOptHtml).join('')}</div>`).join('');
         } else lists = `<div class="opts">${opts.map(schoolOptHtml).join('')}</div>`;
-        const iq = st.iq ? `知性${st.iq[0]}以上で+5%、${st.iq[1]}以上で+10%。知性${st.free}以上なら授業料免除。` : '';
-        body = `<p class="note">受験する学校を選んでください。不合格なら下の段の学校で判定します。${iq}${sp.stage === 'high' ? 'スポーツ科はスポーツ系の趣味が必要（5pt以上で+10%）。' : ''}</p>${lists}
+        body = `${lists}
           ${sp.stage !== 'elem' ? `<div class="btn-row"><button class="btn ghost sm" type="button" data-skip="${sp.stage}">進学しない</button></div>` : ''}`;
         break;
       }
       case 'uni': {
         const facs = Object.keys(H.FACULTIES);
         if (!uniFac || G.facultyOk(uniFac)) uniFac = facs.find(f => !G.facultyOk(f)) || null;
-        const chips = facs.map(f => { const lock = G.facultyOk(f); return `<button class="fac ${uniFac === f ? 'on' : ''}" type="button" data-fac="${f}" ${lock ? 'disabled' : ''} title="${esc(lock || '')}">${H.FACULTIES[f].n}${H.FACULTIES[f].years === 6 ? '（6年）' : ''}</button>`; }).join('');
-        const locked = facs.filter(f => G.facultyOk(f)).map(f => `${H.FACULTIES[f].n}：${G.facultyOk(f)}`).join(' / ');
-        body = `<p class="note">学部を選んでから、受験する大学を選びます。知性70以上で+5%、90以上で+10%。知性95以上なら授業料免除。</p>
+        const chips = facs.map(f => { const lock = G.facultyOk(f); return `<button class="fac ${uniFac === f ? 'on' : ''}" type="button" data-fac="${f}" ${lock ? 'disabled' : ''}>${H.FACULTIES[f].n}${H.FACULTIES[f].years === 6 ? '（6年）' : ''}</button>`; }).join('');
+        body = `<p class="note">学部と大学を選んでください。</p>
           <div class="fac-grid">${chips}</div>
           ${uniFac ? `<div class="opts">${G.schoolOptions('uni', uniFac).map(schoolOptHtml).join('')}</div>` : '<p class="note">進める学部がありません。</p>'}
-          ${locked ? `<details class="more"><summary>進めない学部の理由</summary><p class="note">${esc(locked)}</p></details>` : ''}
           <div class="btn-row"><button class="btn ghost sm" type="button" data-skip="uni">大学には行かない</button></div>`;
         break;
       }
@@ -261,12 +252,12 @@
           const full = !owned && S.hobbies.length >= 3;
           return `<button class="opt" type="button" data-club="${h.id}" ${full ? 'disabled' : ''}><span class="oe">${h.e}</span><span><span class="on">${h.n}${w}</span><span class="os">${fxChips(h.fx)}${owned ? '<span class="chip got">趣味から続ける</span>' : ''}<span class="chip">${G.hp(h.id)}pt</span></span></span><span class="or"></span></button>`;
         }).join('');
-        body = `<p class="note">入った${w}は「趣味」として毎年楽しめます（趣味は${w}を含めて3つまで${cur.length ? `／今の趣味：${esc(cur.join('・'))}` : ''}）。</p>
+        body = `${cur.length ? `<p class="note">今の趣味：${esc(cur.join('・'))}</p>` : ''}
           <div class="opts">${opts}<button class="opt" type="button" data-club="none"><span class="oe">${H.NOCLUB.e}</span><span><span class="on">${sp.stage === 'uni' ? 'サークルに入らない' : '帰宅' + w}</span><span class="os">${fxChips(H.NOCLUB.fx)}<span class="chip">毎年</span>${sp.stage === 'elem' ? '<span class="chip">ほかの趣味を探せる</span>' : ''}</span></span><span class="or"></span></button></div>`;
         break;
       }
       case 'career': {
-        body = `<p class="note">${sp.ronin ? '大学には合格できなかった…。' : ''}働き先を探しますか？ 応募は1年に3回まで（残り${3 - S.yr.jobTries}回）。</p>${jobList(true)}
+        body = `<p class="note">${sp.ronin ? '大学には合格できなかった…。' : ''}働き先を探しますか？</p>${jobList(true)}
           <div class="btn-row">${sp.ronin && S.me.age < 22 ? '<button class="btn ghost sm" type="button" data-cskip="ronin">📚 浪人して来年もう一度</button>' : ''}<button class="btn ghost sm" type="button" data-cskip="none">今は働かない</button></div>`;
         break;
       }
@@ -285,7 +276,7 @@
         if (!s) return '';
         const sev = ['', '軽い', '中くらい', '重い'][s.sev];
         const ok = G.canPay(s.cost);
-        body = `<p class="note">${esc(s.n)}（${sev}病気）。放っておくと健康が下がり、病気を放置するたびに「健康なときの長生きボーナス」が減っていきます${S.neglect ? `（これまでに${S.neglect}回放置）` : ''}。</p>
+        body = `<p class="note">${esc(s.n)}（${sev}病気）。どうする？</p>
           <div class="opts"><button class="opt" type="button" data-sick="treat" ${ok ? '' : 'disabled'}><span class="oe">🏥</span><span><span class="on">病院で治療する</span><span class="os"><span class="chip">${S.indep ? '自分の貯金から' : '家の貯金から'}</span></span></span><span class="or"><b>${yen(s.cost)}</b>${ok ? '' : 'お金が足りない'}</span></button>
           <button class="opt" type="button" data-sick="wait"><span class="oe">🛏️</span><span><span class="on">様子を見る（放置）</span><span class="os"><span class="chip lock">悪化するかも</span></span></span><span class="or">無料</span></button></div>`;
         break;
@@ -309,7 +300,7 @@
         } else if (sp.phase === 'pick') {
           body = `<p class="note">留学の選考に通った！ どこへ行く？（最初の留学は☺️-10）</p><div class="opts">${sp.countries.map(c => { const C = H.countryMap[c]; return `<button class="opt" type="button" data-abgo="${c}"><span class="oe">${C.flag}</span><span><span class="on">${C.name}</span><span class="os"><span class="chip">${esc(C.cities.slice(0, 2).join('・'))}</span></span></span><span class="or"></span></button>`; }).join('')}</div>`;
         } else {
-          body = `<p class="note">今年は留学に挑戦する？ 行ける確率は家庭の階級・学校・知性で決まります。</p><div class="btn-row"><button class="btn primary" type="button" data-ab="try">✈️ 留学に挑戦（${G.abroadRate()}%）</button><button class="btn ghost" type="button" data-ab="no">留学しない（☺️+10）</button></div>`;
+          body = `<p class="note">今年は留学に挑戦する？</p><div class="btn-row"><button class="btn primary" type="button" data-ab="try">✈️ 留学に挑戦（${G.abroadRate()}%）</button><button class="btn ghost" type="button" data-ab="no">留学しない（☺️+10）</button></div>`;
         }
         break;
       }
@@ -319,7 +310,7 @@
         break;
       }
       case 'retire': {
-        body = `<p class="note">65歳になった。${esc(S.job ? S.job.n : '')}の仕事はどうする？（70歳で全員引退します）</p><div class="btn-row"><button class="btn primary" type="button" data-ret="retire">🌅 引退する</button><button class="btn ghost" type="button" data-ret="part">⏳ 短時間で続ける（給料半分）</button><button class="btn ghost" type="button" data-ret="keep">💪 このまま続ける</button></div>`;
+        body = `<p class="note">65歳になった。${esc(S.job ? S.job.n : '')}の仕事はどうする？</p><div class="btn-row"><button class="btn primary" type="button" data-ret="retire">🌅 引退する</button><button class="btn ghost" type="button" data-ret="part">⏳ 短時間で続ける（給料半分）</button><button class="btn ghost" type="button" data-ret="keep">💪 このまま続ける</button></div>`;
         break;
       }
     }
@@ -329,13 +320,10 @@
     const S = G.S;
     const all = G.jobOptions();
     const ok = all.filter(j => !j.lock && !j.cur);
-    const ng = all.filter(j => j.lock && !j.cur);
     const row = j => `<button class="opt ${j.lock ? 'locked' : ''}" type="button" data-job="${j.id}" ${j.lock || S.yr.jobTries >= 3 ? 'disabled' : ''}>
-      <span class="oe">${j.e}</span><span><span class="on">${esc(j.n)}</span><span class="os"><span class="chip">月${yen(j.sal)}〜</span><span class="chip">${{ low: '給料は上がりにくい', normal: '給料の上がり：ふつう', high: '給料が上がりやすい', volatile: '給料の波が大きい' }[j.grow]}</span>${j.lock ? `<span class="chip lock">🔒 ${esc(j.lock)}</span>` : ''}</span></span>
+      <span class="oe">${j.e}</span><span><span class="on">${esc(j.n)}</span><span class="os"><span class="chip">月${yen(j.sal)}〜</span><span class="chip">${{ low: '給料は上がりにくい', normal: '給料の上がり：ふつう', high: '給料が上がりやすい', volatile: '給料の波が大きい' }[j.grow]}</span></span></span>
       <span class="or">${j.lock ? '' : `<b>${j.rate}%</b>採用率`}</span></button>`;
-    return `<div class="opts">${ok.map(row).join('') || '<p class="note">今の条件で応募できる仕事はありません。</p>'}</div>
-      <details class="more"><summary>条件を満たしていない仕事（${ng.length}）</summary><div class="opts">${ng.map(row).join('')}</div></details>
-      <p class="note">🎬 俳優・女優、📸 モデル、🌟 アイドルは、外見80以上でスカウトされたときだけなれます。</p>`;
+    return `<div class="opts">${ok.map(row).join('') || '<p class="note">今は応募できる仕事がありません。</p>'}</div>`;
   }
 
   function bindYear() {
@@ -385,7 +373,7 @@
         clubHtml = `<div class="cur"><span>${S.noClub ? `${H.NOCLUB.e} ${st === 'uni' ? 'サークルに入っていない' : '帰宅' + w}` : 'まだ決めていない'}</span></div>
           <details class="more"><summary>${w}に入る</summary><div class="opts">${H.HOBBIES.filter(h => h.club).map(h => {
           const owned = S.hobbies.some(x => x.id === h.id); const full = !owned && S.hobbies.length >= 3;
-          return `<button class="opt" type="button" data-joinclub="${h.id}" ${full ? 'disabled' : ''}><span class="oe">${h.e}</span><span><span class="on">${h.n}${w}</span><span class="os">${fxChips(h.fx)}${full ? '<span class="chip lock">趣味が3つでいっぱい</span>' : ''}</span></span><span class="or"></span></button>`;
+          return `<button class="opt" type="button" data-joinclub="${h.id}" ${full ? 'disabled' : ''}><span class="oe">${h.e}</span><span><span class="on">${h.n}${w}</span><span class="os">${fxChips(h.fx)}</span></span><span class="or"></span></button>`;
         }).join('')}</div></details>`;
       }
     }
@@ -407,7 +395,7 @@
     if (jobOn) {
       if (S.job) jobHtml += `<div class="cur"><span>${S.job.e} ${esc(S.job.n)}・月${yen(S.job.sal)}${S.job.part ? '（パート：半分）' : ''}</span><span class="btn-row">${S.job.id !== 'helper' ? `<button class="btn ghost sm" type="button" data-part="1">${S.job.part ? 'フルタイムに戻す' : 'パート雇用に変更'}</button>` : ''}<button class="btn ghost sm danger" type="button" data-quitjob="1">仕事を辞める</button></span></div>`;
       if (G.isStudent()) jobHtml += `<p class="note">⚠️ 学生のうちに仕事に就くと、学校を退学することになります。</p>`;
-      jobHtml += `<details class="more"><summary>${S.job ? '転職先を探す' : '仕事を探す'}（今年の応募 残り${3 - S.yr.jobTries}回）</summary>${jobList(false)}</details>`;
+      jobHtml += `<details class="more"><summary>${S.job ? '転職先を探す' : '仕事を探す'}</summary>${jobList(false)}</details>`;
     }
     html += sec('💼 仕事', '10〜70歳', jobOn, jobHtml);
     // 恋愛
@@ -417,17 +405,15 @@
       const p = S.fam.partner;
       if (p && p.alive) {
         const isSp = p.status === 'spouse';
-        const conf = G.conflictsWith(p);
         loveHtml += `<div class="cur"><span>${isSp ? '💍 配偶者' : '💕 恋人'}：${H.countryMap[p.country].flag} ${esc(G.fullName(p))}（${p.age}歳・${esc(p.job)}）</span></div>
-          <p class="note">相手の性格：${p.traits.map(t => H.TRAIT[t].e + H.TRAIT[t].name).join('・')}${conf ? `　<b style="color:var(--warn)">相反する性格 ${conf}つ</b>（別れやすさ +${conf * 10}%）` : ''}</p>
+          <p class="note">相手の性格：${p.traits.map(t => H.TRAIT[t].e + H.TRAIT[t].name).join('・')}</p>
           <div class="btn-row">${!isSp ? `<button class="btn primary sm" type="button" data-propose="1" ${a < 18 || S.yr.propose ? 'disabled' : ''}>💍 プロポーズする（${G.marryRate()}%）</button>` : ''}<button class="btn ghost sm danger" type="button" data-break="1">${isSp ? '離婚する' : '別れる'}</button></div>
           ${a < 18 && !isSp ? '<p class="note">結婚は18歳から。</p>' : ''}`;
       } else {
         loveHtml += `<div class="cur"><span>いまはひとり</span><button class="btn primary sm" type="button" data-findlove="1" ${S.yr.love ? 'disabled' : ''}>💕 恋人・結婚相手を探す（${G.loveRate()}%）</button></div>`;
       }
       loveHtml += `<div class="btn-row" style="align-items:center"><span class="muted small">好きになる相手</span><span class="seg">${[['opp', '異性'], ['same', '同性'], ['any', 'どちらも']].map(([v, n]) => `<button type="button" data-pref="${v}" class="${S.love.pref === v ? 'on' : ''}">${n}</button>`).join('')}</span>
-        <span class="muted small">子ども</span><span class="seg"><button type="button" data-kids="1" class="${S.love.wantKids ? 'on' : ''}">望む</button><button type="button" data-kids="0" class="${!S.love.wantKids ? 'on' : ''}">望まない</button></span></div>
-        <p class="note">${H.countryMap[S.me.live].name}の平均初婚年齢は${H.countryMap[S.me.live].fm}歳。近づくほど恋も結婚もしやすくなります。</p>`;
+        <span class="muted small">子ども</span><span class="seg"><button type="button" data-kids="1" class="${S.love.wantKids ? 'on' : ''}">望む</button><button type="button" data-kids="0" class="${!S.love.wantKids ? 'on' : ''}">望まない</button></span></div>`;
     }
     html += sec('💕 恋愛・結婚', '10歳〜', loveOn, loveHtml);
     // ペット
@@ -521,23 +507,21 @@
     [1, 2, 3].forEach(st => {
       const all = H.TRAITS.filter(t => t.stage === st);
       const got = all.filter(t => S.traits.has.includes(t.id));
-      const grow = all.filter(t => !S.traits.has.includes(t.id) && (S.traits.pts[t.id] || 0) > 0).sort((a, b) => (S.traits.pts[b.id] || 0) - (S.traits.pts[a.id] || 0)).slice(0, 8);
+      const grow = [];
       html += `<div class="trait-stage"><h4>${stageInfo[st]}　${got.length}/${H.TRAIT_LIMIT[st]}</h4><div class="tchips">${got.map(t => `<span class="tchip got" title="${esc(t.desc)}">${t.e} ${t.name}</span>`).join('')}${grow.map(t => `<span class="tchip">${t.e} ${t.name}<small>${S.traits.pts[t.id]}/${H.TRAIT_NEED[st]}</small></span>`).join('')}${!got.length && !grow.length ? '<span class="muted small">まだなし</span>' : ''}</div></div>`;
     });
     html += `<p class="note">${S.traits.has.map(id => H.TRAIT[id]).filter(t => t.stage === 3 || S.me.age < 12).map(t => `${t.e}${t.name}：${esc(t.desc)}`).join('<br>')}</p></section>`;
     // 趣味スキル
     const pts = Object.keys(S.hp).filter(k => S.hp[k] > 0);
-    html += `<section class="sec"><div class="sec-h"><h3>🎨 趣味のスキル</h3><span class="when">Lv.n には n ポイント必要</span></div>${pts.length ? pts.map(id => {
+    html += `<section class="sec"><div class="sec-h"><h3>🎨 趣味のスキル</h3></div>${pts.length ? pts.map(id => {
       const d = H.HOBBY[id]; const lv = G.hobbyLevel(S.hp[id]); const act = S.hobbies.some(h => h.id === id);
       return `<div class="hob"><span class="oe">${d.e}</span><span>${d.n}${act ? '' : '<span class="muted small">（お休み中）</span>'}<div class="bar" style="margin-top:4px"><i style="width:${Math.round(lv.rest / lv.need * 100)}%"></i></div></span><span class="num"><b>Lv.${lv.lv}</b> <span class="muted small">${S.hp[id]}pt</span></span></div>`;
     }).join('') : '<p class="note">趣味を楽しむとスキルが育ちます。</p>'}</section>`;
     // ペット
     html += `<section class="sec"><div class="sec-h"><h3>🐾 ペット</h3></div>${S.pets.length ? S.pets.map(p => { const t = H.PETS.find(x => x.id === p.type); return `<div class="cur"><span>${t.e} ${esc(p.name)}</span><span class="muted small">${p.age}歳・${p.since}歳のときに迎えた</span></div>`; }).join('') : '<p class="note">いまはペットがいません。</p>'}${S.petsGone.length ? `<p class="note">🌈 思い出の子：${S.petsGone.map(p => H.PETS.find(x => x.id === p.type).e + esc(p.name)).join('・')}</p>` : ''}</section>`;
     // 健康
-    const dr = G.deathRate();
-    html += `<section class="sec"><div class="sec-h"><h3>🩺 からだの具合</h3></div><p class="note">${S.sick ? `🤒 ${esc(S.sick.n)}にかかっている${S.sick.treated ? '（治療中）' : ''}` : '😊 いまは元気'}${S.neglect ? `　／　病気を放置した回数：${S.neglect}回` : ''}<br>病気にならない確率：${Math.max(5, Math.min(95, Math.round((S.stats.health * 2 + S.stats.stamina) / 2.5)))}%（健康×2＋体力）÷2.5<br>健康で長生きボーナス：死亡率 -${Math.max(0, 20 - 2 * S.neglect)}%</p></section>`;
+    html += `<section class="sec"><div class="sec-h"><h3>🩺 からだの具合</h3></div><p class="note">${S.sick ? `🤒 ${esc(S.sick.n)}にかかっている${S.sick.treated ? '（治療中）' : ''}` : '😊 いまは元気'}</p></section>`;
     $('#tab-me').innerHTML = html;
-    void dr;
   }
 
   // =============================================================
@@ -621,12 +605,12 @@
   // =============================================================
   function helpHtml() {
     return `<h2>🎂 遊び方</h2>
-      <p><b>1年ごとに3つ選ぶ</b>：「🎯 行動」でステータスを育て、「🧬 性格のタネ」で性格を、「🎨 趣味の時間」で趣味のスキルを伸ばします。</p>
+      <p><b>1年ごとに3つ選ぶ</b>：「🎯 行動」「🧬 性格のタネ」「🎨 趣味の時間」から、今年の過ごし方を選びます。</p>
       <p><b>❗ 大事な選択</b>：進学・就職・病気・プロポーズなどは、オレンジ枠のカードで決めます。</p>
       <p><b>🧭 人生の選択</b>：恋人探し、仕事探し・転職、ペット、マイホーム、クラブや趣味はこのタブからいつでも。</p>
       <p><b>🎂 次の誕生日へ</b>：選択を終えると1年が経ち、思い出（💭）がログに流れます。</p>
       <p><b>🎲 おまかせ</b>：残りの選択をランダムで決めて、テンポよく進めます。</p>
-      <p class="small muted">死亡率や結婚のしやすさは国ごとの平均寿命・初婚年齢をもとにしています。進み具合はこのブラウザに自動保存されます。</p>
+      <p class="small muted">進み具合はこのブラウザに自動保存されます。</p>
       <div class="btn-row"><button class="btn primary" type="button" data-m="close">わかった</button></div>`;
   }
   function boot() {

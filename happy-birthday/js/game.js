@@ -259,25 +259,17 @@
         if (t3) gainTrait(t3.id, `${H.TRAIT[id].name}が大人になって`);
       });
       shuffle(H.TRAITS.filter(t => t.pts4)).forEach(t => {
-        if (t.pts4.some(p => (S.traits.pts[p] || 0) >= 4)) gainTrait(t.id, '子どもの頃の積み重ねから');
+        if (t.pts4.reduce((sum, p) => sum + (S.traits.pts[p] || 0), 0) >= 6) gainTrait(t.id, '子どもの頃の積み重ねから');
       });
       checkTraitPoints();
     }
   }
   function traitOptions() {
     const a = S.me.age;
-    let pool, n = a <= 5 ? 4 : 5;
-    if (a <= 5) {
-      pool = traitCount(1) ? H.TRAITS.filter(t => t.stage === 2) : H.TRAITS.filter(t => t.stage === 1);
-    } else if (a <= 11) {
-      pool = H.TRAITS.filter(t => t.stage === 2 && (has(t.id) || canGetTrait(t.id)));
-      if (pool.length < n) {
-        const extra = shuffle(H.TRAITS.filter(t => t.stage === 3 && !t.from && !t.pts4 && !t.petOnly));
-        pool = pool.concat(extra.slice(0, n - pool.length));
-      }
-    } else {
-      pool = H.TRAITS.filter(t => t.stage === 3 && !t.petOnly && (has(t.id) || canGetTrait(t.id)));
-    }
+    const st = stageOfAge(a);
+    const n = st === 1 ? 4 : 5;
+    const blocked = t => !has(t.id) && ((t.block && t.block.some(has)) || (['act3', 'extro', 'talk'].includes(t.id) && has('intro')));
+    const pool = H.TRAITS.filter(t => t.stage === st && !t.petOnly && !blocked(t));
     return shuffle(pool).slice(0, n).map(t => ({ id: t.id, text: pick(t.t) }));
   }
 
@@ -297,12 +289,18 @@
     const take = x => { if (x && !chosen.includes(x)) chosen.push(x); };
     const cheapest = list => { if (!list.length) return null; const m = Math.min(...list.map(x => x.cost)); return pick(list.filter(x => x.cost === m)); };
     const raises = k => pool.filter(x => k && x.fx[k] > 0 && !chosen.includes(x));
+    // ① いちばん低いステータス（0円・最安） ② いちばん低いステータス（ほか）
+    // ③ 100未満でいちばん高いステータス（0円・最安） ④ 2番目に低いステータス ⑤⑥ ランダム
     take(cheapest(raises(lowK)));
     take(pick(raises(lowK)));
-    if (highK !== lowK) { take(cheapest(raises(highK))); take(pick(raises(highK))); }
+    if (highK !== lowK) take(cheapest(raises(highK)));
+    const others = keys.filter(k => k !== lowK);
+    const v2 = Math.min(...others.map(k => S.stats[k]));
+    const secondK = pick(others.filter(k => S.stats[k] === v2));
+    take(pick(raises(secondK)));
     const rest = shuffle(pool.filter(x => !chosen.includes(x)));
-    while (chosen.length < 5 && rest.length) take(rest.shift());
-    return chosen.slice(0, 5).map(x => ({ i: H.ACTIONS.indexOf(x), cost: price(x.cost), low: x.fx[lowK] > 0, high: highK && x.fx[highK] > 0 }));
+    while (chosen.length < 6 && rest.length) take(rest.shift());
+    return chosen.slice(0, 6).map(x => ({ i: H.ACTIONS.indexOf(x), cost: price(x.cost) }));
   }
 
   // =============================================================
@@ -374,6 +372,7 @@
     if (o.stage === 'grad') S.school.years = H.FACULTIES[o.fac].grad.years;
     S.edu[o.stage] = { tier: o.tier, track: o.track || null, fac: o.fac || null, name: o.name, done: false };
     spend(o.fee);
+    S.yr.special = S.yr.special.filter(x => x.done || !['career', 'work12'].includes(x.type));
     const big = o.tier === 0 || o.stage === 'uni' || o.stage === 'grad';
     log(`🏫 ${o.name}に${o.esc ? '内部進学した' : '入学した'}！${o.fee ? `（学費 年${fmtYen(o.fee)}）` : (H.STAGES[o.stage].fees[o.tier] ? '（成績優秀で授業料免除！）' : '')}`, 'school');
     if (big) hl(`${o.name}に入学した`, o.tier === 0 ? 6 : 4);
@@ -1284,7 +1283,7 @@
     const t = H.TRAIT[o.id];
     c.done = true; c.result = o.text;
     const had = has(o.id);
-    log(`🧩 ${o.text}（${t.e}${t.name}+1）`, 'trait');
+    log(`🧩 ${o.text}`, 'trait');
     addTraitPt(o.id, 1);
     if (had) {
       const st = Object.keys(t.mult || {})[0];
