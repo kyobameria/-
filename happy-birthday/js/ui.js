@@ -443,6 +443,10 @@
         <span class="muted small">子ども</span><span class="seg"><button type="button" data-kids="1" class="${S.love.wantKids ? 'on' : ''}">望む</button><button type="button" data-kids="0" class="${!S.love.wantKids ? 'on' : ''}">望まない</button></span></div>`;
     }
     html += sec('💕 恋愛・結婚', '10歳〜', loveOn, loveHtml);
+    // 養子
+    const adoptOn = G.canAdopt();
+    const adoptHtml = `<div class="cur"><span>🤝 0〜11歳の子どもを家族に迎える</span><button class="btn primary sm" type="button" data-adopt="1" ${S.yr.adopt ? 'disabled' : ''}>養子を迎える</button></div>`;
+    html += sec('🤝 養子を迎える', '18歳〜・仕事についている', adoptOn, adoptHtml);
     // ペット
     const petOn = a >= 10;
     let petHtml = '';
@@ -479,6 +483,7 @@
     q('[data-break]', () => { const p = G.S.fam.partner; const sp = p.status === 'spouse'; confirmBox(sp ? '離婚する？' : '別れる？', `${esc(p.first)}と${sp ? '離婚' : 'お別れ'}します。`, sp ? '離婚する' : '別れる', () => G.breakUp()); });
     q('[data-pref]', b => G.setPref(b.dataset.pref));
     q('[data-kids]', b => G.setWantKids(b.dataset.kids === '1'));
+    q('[data-adopt]', () => confirmBox('養子を迎える？', '0〜11歳の子どもを、家族として迎えます。', '迎える', () => { const r = G.adopt(); toast(r && r.msg); }));
     q('[data-pet]', b => { const r = G.adoptPet(b.dataset.pet); toast(r && r.msg); });
     q('[data-house]', b => { const h = H.HOUSES[+b.dataset.house]; confirmBox(`${h.n}を建てる？`, `${yen(G.price(h.cost))}を支払います。`, '建てる', () => { const r = G.buyHouse(+b.dataset.house); toast(r && r.msg); }); });
   }

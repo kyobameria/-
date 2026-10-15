@@ -898,6 +898,16 @@
     hl(`養子の${k.first}を家族に迎えた`, 8);
     applyFx({ happy: 10 });
   }
+  // 人生の選択タブから養子を迎える（18歳以上・学生ではなく仕事についている）
+  function canAdopt() { return S.me.age >= 18 && !isStudent() && !!S.job; }
+  function adoptManual() {
+    if (!canAdopt()) return { ok: false, msg: '18歳以上で、仕事についているときに迎えられます' };
+    if (S.yr.adopt) return { ok: false, msg: '今年はもう養子を迎えた' };
+    S.yr.adopt = true;
+    adoptKid();
+    const k = S.fam.kids[S.fam.kids.length - 1];
+    return { ok: true, msg: `${k.first}が家族になった！` };
+  }
   function haveKid(adopt) {
     const g = chance(0.512) ? 'm' : 'f';
     const p = spouse();
@@ -1666,7 +1676,7 @@
     trySchool: act(trySchool), skipSchool: act(skipSchool), careChoice: act(careChoice), joinClub: act(joinClub), quitClub: act(quitClub),
     findHobby: act(findHobby), dropHobby: act(dropHobby), tryJob: act(tryJob), quitJob: act(quitJob), togglePart: act(togglePart),
     careerSkip: act(careerSkip), work12: act(work12), retire: act(retire), treat: act(treat), scout: act(scout),
-    abroadDecide: act(abroadDecide), abroadEnd: act(abroadEnd), answerProposal: act(answerProposal), meetAnswer: act(meetAnswer), kidsAnswer: act(kidsAnswer),
+    abroadDecide: act(abroadDecide), abroadEnd: act(abroadEnd), answerProposal: act(answerProposal), meetAnswer: act(meetAnswer), kidsAnswer: act(kidsAnswer), adopt: act(adoptManual), canAdopt: () => !!S && canAdopt(),
     findLove: act(findLove), propose: act(propose), breakUp: act(() => breakUp(false)), adoptPet: act(adoptPet), buyHouse: act(buyHouse),
     setPref: act(v => { S.love.pref = v; }), setWantKids: act(v => { S.love.wantKids = v; })
   };
