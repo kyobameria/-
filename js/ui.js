@@ -348,5 +348,16 @@
   }
 
   window.UI = { render, toast, showEvent, showResult, showEnding, flashFx, showStart };
-  document.addEventListener('DOMContentLoaded', () => { bind(); showStart(); });
+  // ページの読み込みが終わった後にこのスクリプトが実行されても、確実に起動する
+  let booted = false;
+  function boot() {
+    if (booted) return;
+    booted = true;
+    bind();
+    showStart();
+    const msg = document.getElementById('boot-msg');
+    if (msg) msg.hidden = true;
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();

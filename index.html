@@ -19,6 +19,7 @@
       <p class="kicker">81億人の、誰かとして。</p>
       <h1 class="logo">すべて<span>億分の1</span></h1>
       <p class="lead">世界のどこかに、もう一度生まれてみる。<br>一年ずつ歩む、たった一度の人生シミュレーション。</p>
+      <p id="boot-msg" class="boot-msg">ゲームを読み込んでいます…</p>
       <div class="start-btns">
         <button id="btn-random" class="primary big">🎲 生まれる</button>
         <button id="btn-continue" class="ghost hidden">▶ 続きから</button>
@@ -113,5 +114,12 @@
   <script src="js/data/country_events.js"></script>
   <script src="js/game.js"></script>
   <script src="js/ui.js"></script>
+  <script>
+    // 数秒たっても起動しなければ、読み込みに失敗したことを表示する
+    setTimeout(function () {
+      var m = document.getElementById('boot-msg');
+      if (m && !m.hidden && !window.Game) m.textContent = '読み込みに失敗しました。ページを再読み込みしてください。';
+    }, 4000);
+  </script>
 </body>
 </html>

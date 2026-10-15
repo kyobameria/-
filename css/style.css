@@ -91,6 +91,7 @@ button:disabled { cursor: not-allowed; opacity: .45; }
 .logo { font-size: 44px; margin: 4px 0 8px; font-weight: 800; letter-spacing: .04em; }
 .logo span, .logo-s span { color: var(--accent); }
 .lead { color: var(--ink2); margin: 0 0 24px; }
+.boot-msg { color: var(--ink2); font-size: 13px; margin: 0 0 12px; }
 .start-btns { display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .custom { margin: 16px auto 0; background: var(--card); border-radius: var(--radius); padding: 16px; box-shadow: var(--shadow); text-align: left; display: grid; gap: 10px; }
 .custom label { display: grid; gap: 4px; font-size: 13px; color: var(--ink2); font-weight: 700; }
