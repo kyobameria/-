@@ -1001,12 +1001,17 @@
   function kidMilestone(k) {
     if (k.school && k.age >= k.school.start + k.school.years) {
       const sc = k.school;
-      k.edu = sc.name + ' 卒業';
+      k.edu = sc.name + (sc.stage === 'grad' ? ' 修了' : ' 卒業');
       k.grad = k.grad || {};
       k.grad[sc.stage] = true;
       if (sc.fac) k.fac = sc.fac;
       k.school = null;
-      if (sc.stage === 'uni') { log(`🎓 ${k.first}が${sc.name}を卒業した！`, 'family'); hl(`${k.first}が大学を卒業した`, 3); addSpecial({ type: 'kidJob', kid: k.id }); }
+      if (sc.stage === 'uni') {
+        log(`🎓 ${k.first}が${sc.name}を卒業した！`, 'family'); hl(`${k.first}が大学を卒業した`, 3);
+        if (H.FACULTIES[sc.fac] && H.FACULTIES[sc.fac].grad) addSpecial({ type: 'kidPath', kid: k.id, grad: true });
+        else addSpecial({ type: 'kidJob', kid: k.id });
+      }
+      else if (sc.stage === 'grad') { log(`🎓 ${k.first}が${sc.name}を修了した！`, 'family'); hl(`${k.first}が大学院を修了した`, 3); addSpecial({ type: 'kidJob', kid: k.id }); }
       else if (sc.stage === 'high') addSpecial({ type: 'kidPath', kid: k.id });
       else addSpecial({ type: 'kidSchool', kid: k.id, stage: NEXT_STAGE[sc.stage] });
       return;
@@ -1032,6 +1037,9 @@
     if (got) {
       const st = H.STAGES[stage];
       k.school = { stage, tier: got.tier, name: got.name, start: k.age, years: st.years, fee: got.fee };
+      if (stage === 'grad') {
+        k.school.fac = k.fac; k.school.years = H.FACULTIES[k.fac].grad.years; k.school.name += ' ' + H.FACULTIES[k.fac].n;
+      }
       if (stage === 'uni') {
         const fac = pick(['lit', 'econ', 'law', 'intl', 'edu', 'med', 'pharm', 'eng', 'agri']);
         k.school.fac = fac; k.school.years = H.FACULTIES[fac].years; k.school.name += ' ' + H.FACULTIES[fac].n;
@@ -1049,14 +1057,15 @@
     return { ok: false, msg: `${k.first}は${H.STAGES[stage].n}に通えなかった…` };
   }
   function kidNoSchool(k, stage) {
-    if (k.age >= 15 || stage === 'high' || stage === 'uni') addSpecial({ type: 'kidJob', kid: k.id });
+    if (k.age >= 15 || stage === 'high' || stage === 'uni' || stage === 'grad') addSpecial({ type: 'kidJob', kid: k.id });
     else { k.job = '家の手伝い'; k.edu = k.edu || 'なし'; }
   }
   function kidSkip(id) {
     const k = kidById(id);
     const sp = S.yr.special.find(x => x.kid === id && !x.done && (x.type === 'kidSchool' || x.type === 'kidPath'));
-    if (sp) { sp.done = true; sp.result = '進学しない'; }
-    log(`🚪 ${k.first}は進学せずに働くことになった。`, 'family');
+    const toGrad = sp && sp.grad;
+    if (sp) { sp.done = true; sp.result = toGrad ? '大学院に行かずに働く' : '進学しない'; }
+    log(`🚪 ${k.first}は${toGrad ? '大学院には進まずに' : '進学せずに'}働くことになった。`, 'family');
     kidNoSchool(k, 'uni');
   }
   function kidJobOffers(sp) {
@@ -1065,15 +1074,17 @@
     const g = k.grad || {};
     const ok = j => {
       const r = j.req;
-      if (r.scout || r.grad || r.hob || r.stat) return false;
+      if (r.scout || r.hob || r.stat) return false;
+      if (r.grad && !(g.grad && k.fac === r.grad)) return false;
       if (r.edu === 'high' && !g.high) return false;
       if (r.fac && !(g.uni && k.fac === r.fac)) return false;
       return true;
     };
     const elig = H.JOBS.filter(ok);
     // 大学卒なら学部の仕事、高卒なら高卒の仕事を優先
-    const best = shuffle(elig.filter(j => (g.uni && j.req.fac) || (!g.uni && g.high && j.req.edu)));
-    const rest = shuffle(elig.filter(j => !best.includes(j)));
+    const best = shuffle(elig.filter(j => (g.grad && j.req.grad) || (!g.grad && g.uni && j.req.fac) || (!g.uni && g.high && j.req.edu)));
+    const left = shuffle(elig.filter(j => !best.includes(j)));
+    const rest = left.filter(j => g.uni && j.req.fac === k.fac).concat(left.filter(j => !(g.uni && j.req.fac === k.fac)));
     const out = best.concat(rest).slice(0, 3).map(j => {
       let start = j.start;
       (j.alt || []).forEach(a => { if (a.fac && g.uni && k.fac === a.fac && a.start > start) start = a.start; });
@@ -1548,7 +1559,7 @@
       case 'kidSchool': case 'kidPath': {
         const k = kidById(sp.kid);
         if (!k || !k.alive) { sp.done = true; break; }
-        const stage = sp.type === 'kidPath' ? 'uni' : sp.stage;
+        const stage = sp.type === 'kidPath' ? (sp.grad ? 'grad' : 'uni') : sp.stage;
         if (sp.type === 'kidPath' && chance(0.3)) { kidSkip(sp.kid); break; }
         const o = kidSchoolOptions(k, stage).filter(x => !x.lock);
         if (o.length) kidTrySchool(sp.kid, stage, o[0].tier); else kidSkip(sp.kid);

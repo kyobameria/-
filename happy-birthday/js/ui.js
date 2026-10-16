@@ -318,11 +318,11 @@
       case 'kidSchool': case 'kidPath': {
         const k = G.kidById(sp.kid);
         if (!k || !k.alive) return '';
-        const stage = sp.type === 'kidPath' ? 'uni' : sp.stage;
+        const stage = sp.type === 'kidPath' ? (sp.grad ? 'grad' : 'uni') : sp.stage;
         title = sp.type === 'kidPath' ? `🎓 ${esc(k.first)}の進路` : `🎒 ${esc(k.first)}の${H.STAGES[stage].n}`;
         const opts = G.kidSchoolOptions(k, stage).map(o => `<button class="opt" type="button" data-kschool="${o.tier}" data-kid="${k.id}" data-stage="${stage}" ${o.lock ? 'disabled' : ''}><span class="oe">${['🏰', '🏫', '🏠'][o.tier]}</span><span><span class="on">${esc(o.name)}</span><span class="os"><span class="chip">${o.fee ? `年${yen(o.fee)}` : '無料'}</span></span></span><span class="or"><b>${o.rate}%</b>合格率</span></button>`).join('');
-        body = `<p class="note">${esc(k.first)}（${k.age}歳）の${sp.type === 'kidPath' ? '高校卒業後の進路' : '進学先'}を選ぼう。</p><div class="opts">${opts}</div>
-          ${sp.type === 'kidPath' ? `<div class="btn-row"><button class="btn ghost sm" type="button" data-kskip="${k.id}">進学せずに働く</button></div>` : ''}`;
+        body = `<p class="note">${esc(k.first)}（${k.age}歳）の${sp.type === 'kidPath' ? (sp.grad ? `大学卒業後の進路（大学院 ${H.FACULTIES[k.fac].n}・${H.FACULTIES[k.fac].grad.years}年）` : '高校卒業後の進路') : '進学先'}を選ぼう。</p><div class="opts">${opts}</div>
+          ${sp.type === 'kidPath' ? `<div class="btn-row"><button class="btn ghost sm" type="button" data-kskip="${k.id}">${sp.grad ? '大学院に行かずに働く' : '進学せずに働く'}</button></div>` : ''}`;
         break;
       }
       case 'kidJob': {
