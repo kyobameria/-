@@ -848,11 +848,13 @@
       const bearer = S.me.gender === 'f' ? S.me.age : (p.gender === 'f' ? p.age : null);
       if (S.love.wantKids) {
         const kids = S.fam.kids.length;
-        // 1年あたり約60%（30歳以下なら3年以内に約9割）
-        let rate = 0.6 * { poor: 1.1, low: 1.05, mid: 1, upper: 0.95, rich: 0.9 }[live().tier];
+        // 1年あたり約60%（30歳以下なら3年以内に約9割）。きょうだいの多い国（出身国の平均子ども数が2人超）ほどボーナス
+        const tfr = birth().tfr || 2;
+        let rate = 0.6 * Math.max(1, 1 + (tfr - 2) * 0.15);
         if (bearer == null) rate = 0;
         else { const b = bearer; rate *= b < 18 ? 0 : b <= 30 ? 1 : b <= 35 ? 0.85 : b <= 40 ? 0.55 : b <= 44 ? 0.2 : 0; }
-        rate *= kids < 2 ? 1 : kids === 2 ? 0.55 : kids === 3 ? 0.3 : 0.12;
+        const n = kids - Math.max(0, Math.round(tfr) - 2); // 平均が多い国では、その人数までは生まれにくくならない
+        rate *= n < 2 ? 1 : n === 2 ? 0.55 : n === 3 ? 0.3 : 0.12;
         if (has('family')) rate *= 1.3;
         if (has('wolf')) rate *= 0.7;
         if (chance(rate)) haveKid(bearer == null);
@@ -1000,6 +1002,9 @@
     if (k.school && k.age >= k.school.start + k.school.years) {
       const sc = k.school;
       k.edu = sc.name + ' 卒業';
+      k.grad = k.grad || {};
+      k.grad[sc.stage] = true;
+      if (sc.fac) k.fac = sc.fac;
       k.school = null;
       if (sc.stage === 'uni') { log(`🎓 ${k.first}が${sc.name}を卒業した！`, 'family'); hl(`${k.first}が大学を卒業した`, 3); addSpecial({ type: 'kidJob', kid: k.id }); }
       else if (sc.stage === 'high') addSpecial({ type: 'kidPath', kid: k.id });
@@ -1027,6 +1032,10 @@
     if (got) {
       const st = H.STAGES[stage];
       k.school = { stage, tier: got.tier, name: got.name, start: k.age, years: st.years, fee: got.fee };
+      if (stage === 'uni') {
+        const fac = pick(['lit', 'econ', 'law', 'intl', 'edu', 'med', 'pharm', 'eng', 'agri']);
+        k.school.fac = fac; k.school.years = H.FACULTIES[fac].years; k.school.name += ' ' + H.FACULTIES[fac].n;
+      }
       k.job = KID_STAGE_JOB[stage];
       spend(got.fee);
       if (sp) sp.result = `${got.name}へ`;
@@ -1052,12 +1061,24 @@
   }
   function kidJobOffers(sp) {
     if (sp.offers) return sp.offers;
-    const out = [];
-    while (out.length < 3) {
-      const cls = clamp(S.me.cls + rnd(-1, 1) + (/大学/.test(kidById(sp.kid).edu || '') ? 1 : 0), 1, 4);
-      const pj = parentJob(cls, S.me.live);
-      if (!out.some(o => o.job === pj.job)) out.push(pj);
-    }
+    const k = kidById(sp.kid);
+    const g = k.grad || {};
+    const ok = j => {
+      const r = j.req;
+      if (r.scout || r.grad || r.hob || r.stat) return false;
+      if (r.edu === 'high' && !g.high) return false;
+      if (r.fac && !(g.uni && k.fac === r.fac)) return false;
+      return true;
+    };
+    const elig = H.JOBS.filter(ok);
+    // 大学卒なら学部の仕事、高卒なら高卒の仕事を優先
+    const best = shuffle(elig.filter(j => (g.uni && j.req.fac) || (!g.uni && g.high && j.req.edu)));
+    const rest = shuffle(elig.filter(j => !best.includes(j)));
+    const out = best.concat(rest).slice(0, 3).map(j => {
+      let start = j.start;
+      (j.alt || []).forEach(a => { if (a.fac && g.uni && k.fac === a.fac && a.start > start) start = a.start; });
+      return { job: k.gender === 'f' && j.nf ? j.nf : j.n, sal: Math.round(start * 10000 * ppp() * rndf(0.95, 1.08)) };
+    });
     sp.offers = out;
     return out;
   }
@@ -1453,6 +1474,7 @@
     const c = S.yr.act;
     if (c.done) return;
     const o = c.opts[k];
+    if (!o) { c.done = true; c.result = 'のんびり過ごした'; return { ok: true }; }
     const x = H.ACTIONS[o.i];
     if (!canPay(o.cost)) return { ok: false, msg: 'お金が足りない' };
     spend(o.cost);
