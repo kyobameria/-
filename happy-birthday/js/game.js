@@ -1256,8 +1256,13 @@
     const b = 0.09, M = c.life + 1;
     const a = b * Math.log(2) * Math.exp(-b * M);
     let q = 1 - Math.exp(-a * Math.exp(b * x));
-    if (x === 0) q += c.q0;
-    else if (x <= 4) q += c.q0 / 6;
+    // 0〜4歳は「健康なら×0.8」の割引がかかっても国の実際の値に近づくよう、少し上乗せ（×1.2）
+    if (x === 0) q += c.q0 * 1.2;
+    else if (x <= 4) {
+      // 1〜4歳：その国の5歳未満死亡率から乳児の分を引き、幼いほど重く配分（1歳40%・2歳25%・3歳20%・4歳15%）
+      const child = Math.max(0, (c.u5 - c.q0) / (1 - c.q0));
+      q += child * [0, 0.4, 0.25, 0.2, 0.15][x] * 1.2;
+    }
     else if (x <= 14) q += c.q0 / 25;
     if (x >= 15 && x <= 45) q += 0.0004 + Math.max(0, 80 - c.life) * 0.00008;
     return clamp(q, 0, 0.95);
