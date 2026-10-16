@@ -245,11 +245,11 @@ HB.SCHOOL_RATE = {
 };
 HB.STAGES = {
   kinder: { n: '幼稚園・保育園', start: 3, years: 3, edu: 0, fees: [10000, 5000, 1000], names: ['有名幼稚園', '幼稚園', '保育園'], rate: 'kinder' },
-  elem:   { n: '小学校', start: 6, years: 6, edu: 1, fees: [20000, 10000, 0], names: ['有名私立小学校', '私立小学校', '公立小学校'], rate: 'base', iq: [40, 60], free: 70 },
-  middle: { n: '中学校', start: 12, years: 3, edu: 2, fees: [20000, 10000, 0], names: ['有名私立中学校', '私立中学校', '公立中学校'], rate: 'base', iq: [50, 70], free: 80, esc: 80 },
-  high:   { n: '高校', start: 15, years: 3, edu: 3, fees: [30000, 20000, 10000], names: ['有名私立高校', '私立高校', '公立高校'], rate: 'base', iq: [60, 80], free: 90, esc: 90 },
-  uni:    { n: '大学', start: 18, years: 4, edu: 4, fees: [50000, 30000, 10000], names: ['有名私立大学', '私立大学', '国公立大学'], rate: 'uni', iq: [70, 90], free: 95 },
-  grad:   { n: '大学院', start: 22, years: 2, edu: 4, fees: [50000, 30000, 10000], names: ['有名私立大学院', '私立大学院', '国公立大学院'], rate: 'uni', iq: [70, 90], free: 95 }
+  elem:   { n: '小学校', start: 6, years: 6, edu: 1, fees: [20000, 10000, 0], names: ['有名私立小学校', '私立小学校', '公立小学校'], rate: 'base', piv: 20, free: 70 },
+  middle: { n: '中学校', start: 12, years: 3, edu: 2, fees: [20000, 10000, 0], names: ['有名私立中学校', '私立中学校', '公立中学校'], rate: 'base', piv: 35, free: 80, esc: 80 },
+  high:   { n: '高校', start: 15, years: 3, edu: 3, fees: [30000, 20000, 10000], names: ['有名私立高校', '私立高校', '公立高校'], rate: 'base', piv: 45, free: 90, esc: 90 },
+  uni:    { n: '大学', start: 18, years: 4, edu: 4, fees: [50000, 30000, 10000], names: ['有名私立大学', '私立大学', '国公立大学'], rate: 'uni', piv: 55, free: 95 },
+  grad:   { n: '大学院', start: 22, years: 2, edu: 4, fees: [50000, 30000, 10000], names: ['有名私立大学院', '私立大学院', '国公立大学院'], rate: 'uni', piv: 60, free: 95 }
 };
 // 高校の科
 HB.HS_TRACKS = {

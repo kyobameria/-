@@ -310,7 +310,7 @@
   function passRate(stage, tier, track, fac) {
     const st = H.STAGES[stage];
     let r = H.SCHOOL_RATE[st.rate][S.me.cls][tier];
-    if (st.iq) { if (S.stats.intel >= st.iq[1]) r += 10; else if (S.stats.intel >= st.iq[0]) r += 5; }
+    r += intelBonus(S.stats.intel, stage);
     if (stage === 'high' && track === 'sport' && sportPts() >= 5) r += 10;
     if (stage === 'uni' && fac === 'sport' && sportPts() >= 6) r += 10;
     // 国の進学補正（マイナスのみ・下限0.6倍）
@@ -318,6 +318,17 @@
     if (S.me.live !== S.me.country) f *= C(S.me.live).edu[STAGE_EDU_IDX[stage]];
     r = r * Math.max(0.6, Math.min(1, f));
     return clamp(Math.round(r), 0, 100);
+  }
+  // 知性ボーナス：学校ごとの基準値からの差×0.4（-10〜+20%）
+  function intelBonus(intel, stage) {
+    const st = H.STAGES[stage];
+    if (st.piv == null) return 0;
+    return clamp(Math.round((intel - st.piv) * 0.4), -10, 20);
+  }
+  function countryEdu(stage) {
+    let f = birth().edu[STAGE_EDU_IDX[stage]];
+    if (S.me.live !== S.me.country) f *= C(S.me.live).edu[STAGE_EDU_IDX[stage]];
+    return Math.max(0.6, Math.min(1, f));
   }
   function fee(stage, tier) {
     const st = H.STAGES[stage];
@@ -704,6 +715,8 @@
     }
     // 学費
     if (S.school && S.school.fee && S.me.age < S.school.start + S.school.years) { spend(S.school.fee); }
+    // 子どもの学費
+    S.fam.kids.forEach(k => { if (k.alive && k.school && k.school.fee && k.age < k.school.start + k.school.years) spend(k.school.fee); });
     // ペット
     S.pets.forEach(p => spend(price(H.PETS.find(t => t.id === p.type).cost)));
     // 貯金がマイナスだと幸福が下がる
@@ -825,7 +838,7 @@
       if (chance(splitRate(p) / 100)) { breakUp(true); return; }
     } else if (p.status === 'spouse') {
       // 夫婦の危機（4年に1度くらい）→ そのときの離婚率で判定
-      if (chance(0.25) && chance(splitRate(p) / 100)) {
+      if (S.me.age - (p.marriedAt || 0) >= 2 && chance(0.06) && chance(splitRate(p) / 100)) {
         log(`🌧️ ${p.first}との間ですれ違いが続き…`, 'love', { sad: true });
         breakUp(true); return;
       }
@@ -835,9 +848,10 @@
       const bearer = S.me.gender === 'f' ? S.me.age : (p.gender === 'f' ? p.age : null);
       if (S.love.wantKids) {
         const kids = S.fam.kids.length;
-        let rate = { poor: 0.32, low: 0.27, mid: 0.22, upper: 0.2, rich: 0.17 }[live().tier];
+        // 1年あたり約60%（30歳以下なら3年以内に約9割）
+        let rate = 0.6 * { poor: 1.1, low: 1.05, mid: 1, upper: 0.95, rich: 0.9 }[live().tier];
         if (bearer == null) rate = 0;
-        else { const b = bearer; rate *= b < 18 ? 0 : b <= 30 ? 1 : b <= 35 ? 0.75 : b <= 40 ? 0.45 : b <= 44 ? 0.15 : 0; }
+        else { const b = bearer; rate *= b < 18 ? 0 : b <= 30 ? 1 : b <= 35 ? 0.85 : b <= 40 ? 0.55 : b <= 44 ? 0.2 : 0; }
         rate *= kids < 2 ? 1 : kids === 2 ? 0.55 : kids === 3 ? 0.3 : 0.12;
         if (has('family')) rate *= 1.3;
         if (has('wolf')) rate *= 0.7;
@@ -861,6 +875,29 @@
     }
     if (p.status === 'spouse' && a <= 60 && p.marriedAt != null && a > p.marriedAt && (a - p.marriedAt) % 3 === 0) {
       addSpecial({ type: 'kids' });
+    }
+  }
+  // 10年に1度くらいの、新しい趣味・ペットのお誘い
+  function offers() {
+    const a = S.me.age;
+    if (canFindHobby() && S.hobbies.length < 3 && chance(0.1)) {
+      const pool = H.HOBBIES.filter(h => !activeHobby(h.id) && (a >= 12 || h.cat === 'other'));
+      if (pool.length) addSpecial({ type: 'hobbyOffer', hobby: pick(pool).id });
+    }
+    if (a >= 10 && !S.pets.length && chance(0.1)) addSpecial({ type: 'petOffer', pet: pick(H.PETS).id });
+  }
+  function offerAnswer(type, yes) {
+    const sp = S.yr.special.find(x => x.type === type && !x.done);
+    if (!sp) return;
+    sp.done = true;
+    if (type === 'hobbyOffer') {
+      const h = H.HOBBY[sp.hobby];
+      if (yes) { const r = findHobby(sp.hobby); sp.result = r.ok ? `${h.e}${h.n}を始めた` : '始められなかった'; }
+      else { sp.result = '始めない'; log(`🍃 ${h.n}には、今回は手を出さないことにした。`, 'hobby'); }
+    } else {
+      const t = H.PETS.find(x => x.id === sp.pet);
+      if (yes) { const r = adoptPet(sp.pet); sp.result = r.ok ? `${t.e}${t.n}を飼う` : '飼えなかった'; }
+      else { sp.result = '飼わない'; log(`🍃 ${t.n}を飼うのは、今回は見送った。`, 'pet'); }
     }
   }
   function meetAnswer(yes) {
@@ -893,6 +930,9 @@
     const last = (S.me.gender === 'm' || !p || p.gender === 'f') ? S.me.last : p.last;
     const job = age < 3 ? '赤ちゃん' : age < 6 ? '幼児' : '小学生';
     const k = makePerson({ rel: g === 'm' ? '息子' : '娘', gender: g, age, country: code, first: newFirst(code, g), last, job, sal: 0, kids: [], traits: age >= 3 ? randomTraits(3) : [], adopted: true });
+    k.intel = rnd(20, 90);
+    const stg = age >= 12 ? 'middle' : age >= 6 ? 'elem' : null;
+    if (stg) { const st = H.STAGES[stg]; k.school = { stage: stg, tier: 2, name: st.names[2], start: st.start, years: st.years, fee: price(st.fees[2]) }; k.job = KID_STAGE_JOB[stg]; }
     S.fam.kids.push(k);
     log(`🤝 ${C(code).flag} ${C(code).name}生まれの${age}歳の${g === 'm' ? '男の子' : '女の子'}、${k.first}を養子として家族に迎えた！`, 'family');
     hl(`養子の${k.first}を家族に迎えた`, 8);
@@ -914,6 +954,7 @@
     const code = S.me.live;
     const last = (S.me.gender === 'm' || !p || p.gender === 'f') ? S.me.last : p.last;
     const k = makePerson({ rel: g === 'm' ? '息子' : '娘', gender: g, age: 0, country: code, first: newFirst(code, g), last, job: '赤ちゃん', sal: 0, kids: [], traits: [] });
+    k.intel = rnd(20, 90);
     S.fam.kids.push(k);
     log(adopt ? `👶 養子として${k.first}を家族に迎えた！` : `👶 ${g === 'm' ? '男の子' : '女の子'}の${k.first}が生まれた！`, 'family');
     hl(`${g === 'm' ? '息子' : '娘'}の${k.first}が生まれた`, 8);
@@ -924,15 +965,9 @@
       if (!k.alive) return;
       k.age++;
       if (chance(qx(k.age - 1, S.me.live) * 0.8)) { k.alive = false; k.deathAge = k.age; log(`🕯️ ${k.rel}の${k.first}が${k.age}歳で旅立った…。`, 'family', { sad: true }); hl(`${k.rel}の${k.first}を亡くした`, 6); applyFx({ happy: -25, mental: -15 }); return; }
-      if (k.age === 3) k.traits = randomTraits(3);
-      if (k.age === 6) k.job = '小学生';
-      if (k.age === 12) k.job = '中学生';
-      if (k.age === 15) k.job = '高校生';
-      if (k.age === 18) {
-        if (chance(0.45 + S.me.cls * 0.08)) { k.job = '大学生'; }
-        else { const pj = parentJob(clamp(S.me.cls + rnd(-1, 0), 1, 4), S.me.live); k.job = pj.job; k.sal = pj.sal; log(`💼 ${k.first}が${k.job}として働き始めた。`, 'family'); }
-      }
-      if (k.age === 22 && k.job === '大学生') { const pj = parentJob(clamp(S.me.cls + rnd(0, 1), 1, 4), S.me.live); k.job = pj.job; k.sal = pj.sal; log(`🎓 ${k.first}が大学を卒業して、${k.job}になった。`, 'family'); hl(`${k.first}が大学を卒業した`, 3); }
+      if (k.age === 3 && !(k.traits || []).length) k.traits = randomTraits(3);
+      if (k.age === 3 && !k.school && !k.sal) k.job = '幼児';
+      kidMilestone(k);
       if (k.sal && k.age > 18 && k.age < 65) k.sal = Math.round(k.sal * rndf(1.01, 1.04));
       if (k.age === 65 && k.sal) { k.job = '年金暮らし'; k.sal = 0; }
       // 子どもの結婚
@@ -955,6 +990,86 @@
       }
       (k.kids || []).forEach(gk => { if (gk.alive) gk.age++; });
     });
+  }
+  // ---------------- 子どもの進学・就職（親として選ぶ）
+  const KID_STAGE_JOB = { elem: '小学生', middle: '中学生', high: '高校生', uni: '大学生' };
+  const NEXT_STAGE = { elem: 'middle', middle: 'high' };
+  function kidIntel(k) { if (k.intel == null) k.intel = rnd(20, 90); return k.intel; }
+  function kidById(id) { return S.fam.kids.find(k => k.id === id); }
+  function kidMilestone(k) {
+    if (k.school && k.age >= k.school.start + k.school.years) {
+      const sc = k.school;
+      k.edu = sc.name + ' 卒業';
+      k.school = null;
+      if (sc.stage === 'uni') { log(`🎓 ${k.first}が${sc.name}を卒業した！`, 'family'); hl(`${k.first}が大学を卒業した`, 3); addSpecial({ type: 'kidJob', kid: k.id }); }
+      else if (sc.stage === 'high') addSpecial({ type: 'kidPath', kid: k.id });
+      else addSpecial({ type: 'kidSchool', kid: k.id, stage: NEXT_STAGE[sc.stage] });
+      return;
+    }
+    if (k.age === 6 && !k.school && !k.edu) addSpecial({ type: 'kidSchool', kid: k.id, stage: 'elem' });
+    if (k.age === 15 && !k.school && !k.sal && !k.workChosen) addSpecial({ type: 'kidJob', kid: k.id });
+  }
+  function kidSchoolOptions(k, stage) {
+    const st = H.STAGES[stage];
+    return [0, 1, 2].map(tier => {
+      let r = H.SCHOOL_RATE[st.rate][S.me.cls][tier] + intelBonus(kidIntel(k), stage);
+      r = clamp(Math.round(r * countryEdu(stage)), 0, 100);
+      const f = price(st.fees[tier]);
+      return { tier, name: st.names[tier], rate: r, fee: f, lock: !canPay(f) };
+    });
+  }
+  function kidTrySchool(id, stage, tier) {
+    const k = kidById(id);
+    const sp = S.yr.special.find(x => x.kid === id && !x.done && (x.type === 'kidSchool' || x.type === 'kidPath'));
+    if (sp) sp.done = true;
+    const opts = kidSchoolOptions(k, stage).filter(o => o.tier >= tier && !o.lock);
+    const got = opts.find(o => R() * 100 < o.rate);
+    if (got) {
+      const st = H.STAGES[stage];
+      k.school = { stage, tier: got.tier, name: got.name, start: k.age, years: st.years, fee: got.fee };
+      k.job = KID_STAGE_JOB[stage];
+      spend(got.fee);
+      if (sp) sp.result = `${got.name}へ`;
+      log(`🏫 ${k.first}が${got.name}に入学した！`, 'family');
+      if (stage === 'uni') hl(`${k.first}が${got.name}に入学した`, 3);
+      return { ok: true, msg: `${k.first}は${got.name}へ！` };
+    }
+    if (sp) sp.result = '通えなかった';
+    log(`📮 ${k.first}は${H.STAGES[stage].n}に通えなかった…。`, 'family', { sad: true });
+    kidNoSchool(k, stage);
+    return { ok: false, msg: `${k.first}は${H.STAGES[stage].n}に通えなかった…` };
+  }
+  function kidNoSchool(k, stage) {
+    if (k.age >= 15 || stage === 'high' || stage === 'uni') addSpecial({ type: 'kidJob', kid: k.id });
+    else { k.job = '家の手伝い'; k.edu = k.edu || 'なし'; }
+  }
+  function kidSkip(id) {
+    const k = kidById(id);
+    const sp = S.yr.special.find(x => x.kid === id && !x.done && (x.type === 'kidSchool' || x.type === 'kidPath'));
+    if (sp) { sp.done = true; sp.result = '進学しない'; }
+    log(`🚪 ${k.first}は進学せずに働くことになった。`, 'family');
+    kidNoSchool(k, 'uni');
+  }
+  function kidJobOffers(sp) {
+    if (sp.offers) return sp.offers;
+    const out = [];
+    while (out.length < 3) {
+      const cls = clamp(S.me.cls + rnd(-1, 1) + (/大学/.test(kidById(sp.kid).edu || '') ? 1 : 0), 1, 4);
+      const pj = parentJob(cls, S.me.live);
+      if (!out.some(o => o.job === pj.job)) out.push(pj);
+    }
+    sp.offers = out;
+    return out;
+  }
+  function kidPickJob(id, idx) {
+    const k = kidById(id);
+    const sp = S.yr.special.find(x => x.kid === id && !x.done && x.type === 'kidJob');
+    const offers = kidJobOffers(sp);
+    const o = idx === 'self' ? pick(offers) : offers[idx];
+    sp.done = true; sp.result = idx === 'self' ? `本人が${o.job}を選んだ` : o.job;
+    k.job = o.job; k.sal = o.sal; k.workChosen = true;
+    log(idx === 'self' ? `💼 ${k.first}は自分で考えて、${o.job}として働き始めた。` : `💼 ${k.first}が${o.job}として働き始めた。`, 'family');
+    hl(`${k.first}が${o.job}になった`, 2);
   }
   function grandkids() { const out = []; S.fam.kids.forEach(k => (k.kids || []).forEach(g => out.push(g))); return out; }
 
@@ -1407,6 +1522,17 @@
       case 'scout': scout(chance(0.3)); break;
       case 'proposal': answerProposal(chance(0.7)); break;
       case 'meet': meetAnswer(chance(0.6)); break;
+      case 'hobbyOffer': case 'petOffer': offerAnswer(sp.type, chance(0.5)); break;
+      case 'kidSchool': case 'kidPath': {
+        const k = kidById(sp.kid);
+        if (!k || !k.alive) { sp.done = true; break; }
+        const stage = sp.type === 'kidPath' ? 'uni' : sp.stage;
+        if (sp.type === 'kidPath' && chance(0.3)) { kidSkip(sp.kid); break; }
+        const o = kidSchoolOptions(k, stage).filter(x => !x.lock);
+        if (o.length) kidTrySchool(sp.kid, stage, o[0].tier); else kidSkip(sp.kid);
+        break;
+      }
+      case 'kidJob': { const k = kidById(sp.kid); if (!k || !k.alive) { sp.done = true; break; } kidPickJob(sp.kid, 'self'); break; }
       case 'kids': kidsAnswer(pick(['want', 'want', 'want', 'later', 'later', 'adopt'])); break;
       case 'abroad': abroadDecide(S.abroad ? 'stay' : 'no'); break;
       case 'abroadEnd': abroadEnd('back'); break;
@@ -1500,6 +1626,7 @@
     yearlyFamily();
     yearlyLove();
     loveEvents();
+    offers();
     stageTransition();
     setAllowance();
 
@@ -1676,7 +1803,8 @@
     trySchool: act(trySchool), skipSchool: act(skipSchool), careChoice: act(careChoice), joinClub: act(joinClub), quitClub: act(quitClub),
     findHobby: act(findHobby), dropHobby: act(dropHobby), tryJob: act(tryJob), quitJob: act(quitJob), togglePart: act(togglePart),
     careerSkip: act(careerSkip), work12: act(work12), retire: act(retire), treat: act(treat), scout: act(scout),
-    abroadDecide: act(abroadDecide), abroadEnd: act(abroadEnd), answerProposal: act(answerProposal), meetAnswer: act(meetAnswer), kidsAnswer: act(kidsAnswer), adopt: act(adoptManual), canAdopt: () => !!S && canAdopt(),
+    abroadDecide: act(abroadDecide), abroadEnd: act(abroadEnd), answerProposal: act(answerProposal), meetAnswer: act(meetAnswer), kidsAnswer: act(kidsAnswer), offerAnswer: act(offerAnswer),
+    kidSchoolOptions, kidJobOffers, kidById, kidTrySchool: act(kidTrySchool), kidSkip: act(kidSkip), kidPickJob: act(kidPickJob), adopt: act(adoptManual), canAdopt: () => !!S && canAdopt(),
     findLove: act(findLove), propose: act(propose), breakUp: act(() => breakUp(false)), adoptPet: act(adoptPet), buyHouse: act(buyHouse),
     setPref: act(v => { S.love.pref = v; }), setWantKids: act(v => { S.love.wantKids = v; })
   };

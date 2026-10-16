@@ -196,7 +196,7 @@
   }
   function specialCard(sp, i) {
     const S = G.S;
-    const titles = { kinder: '🧸 幼稚園・保育園', care: '🤲 だれに見てもらう？', school: '🏫 進学先を選ぶ', club: '🎽 クラブ・部活・サークル', uni: '🎓 大学受験', grad: '🎓 大学院へ進む？', career: '💼 これからの進路', work12: '🧺 これからの暮らし', sick: '🤒 病気になった', scout: '🌟 スカウトされた！', proposal: '💐 プロポーズ', meet: '💕 すてきな出会い', kids: '🍼 子どものこと', abroad: '✈️ 留学', abroadEnd: '🌍 卒業後はどこで暮らす？', retire: '🌅 65歳、これからの働き方' };
+    const titles = { kinder: '🧸 幼稚園・保育園', care: '🤲 だれに見てもらう？', school: '🏫 進学先を選ぶ', club: '🎽 クラブ・部活・サークル', uni: '🎓 大学受験', grad: '🎓 大学院へ進む？', career: '💼 これからの進路', work12: '🧺 これからの暮らし', sick: '🤒 病気になった', scout: '🌟 スカウトされた！', proposal: '💐 プロポーズ', meet: '💕 すてきな出会い', kids: '🍼 子どものこと', hobbyOffer: '🎨 新しい趣味のお誘い', petOffer: '🐾 ペットとの出会い', kidSchool: '🎒 子どもの進学', kidPath: '🎓 子どもの進路', kidJob: '💼 子どもの就職', abroad: '✈️ 留学', abroadEnd: '🌍 卒業後はどこで暮らす？', retire: '🌅 65歳、これからの働き方' };
     let title = titles[sp.type] || '大事な選択';
     if (sp.type === 'school') title = `🏫 ${H.STAGES[sp.stage].n}を選ぶ`;
     if (sp.type === 'club') title = `🎽 ${G.clubWord(sp.stage)}を選ぶ`;
@@ -304,6 +304,36 @@
         body = `${profileBox(c)}<p class="note">${esc(c.first)}から「付き合ってください」と言われた！</p><div class="btn-row"><button class="btn primary" type="button" data-meet="1">💕 付き合う</button><button class="btn ghost" type="button" data-meet="0">付き合わない</button></div>`;
         break;
       }
+      case 'hobbyOffer': {
+        const h = H.HOBBY[sp.hobby];
+        body = `<p class="note">友達に誘われて、${h.e} ${h.n}をやってみないかと声をかけられた。</p><div class="btn-row"><button class="btn primary" type="button" data-offer="hobbyOffer" data-yes="1">${h.e} 始めてみる</button><button class="btn ghost" type="button" data-offer="hobbyOffer" data-yes="0">今回はやめておく</button></div>`;
+        break;
+      }
+      case 'petOffer': {
+        const t = H.PETS.find(x => x.id === sp.pet);
+        const c = G.price(t.cost);
+        body = `<p class="note">${t.e} ${t.n}の里親を探している人に出会った。家族に迎える？</p><div class="btn-row"><button class="btn primary" type="button" data-offer="petOffer" data-yes="1" ${G.S.yr.pet ? 'disabled' : ''}>${t.e} 飼う（年${yen(c)}）</button><button class="btn ghost" type="button" data-offer="petOffer" data-yes="0">飼わない</button></div>`;
+        break;
+      }
+      case 'kidSchool': case 'kidPath': {
+        const k = G.kidById(sp.kid);
+        if (!k || !k.alive) return '';
+        const stage = sp.type === 'kidPath' ? 'uni' : sp.stage;
+        title = sp.type === 'kidPath' ? `🎓 ${esc(k.first)}の進路` : `🎒 ${esc(k.first)}の${H.STAGES[stage].n}`;
+        const opts = G.kidSchoolOptions(k, stage).map(o => `<button class="opt" type="button" data-kschool="${o.tier}" data-kid="${k.id}" data-stage="${stage}" ${o.lock ? 'disabled' : ''}><span class="oe">${['🏰', '🏫', '🏠'][o.tier]}</span><span><span class="on">${esc(o.name)}</span><span class="os"><span class="chip">${o.fee ? `年${yen(o.fee)}` : '無料'}</span></span></span><span class="or"><b>${o.rate}%</b>合格率</span></button>`).join('');
+        body = `<p class="note">${esc(k.first)}（${k.age}歳）の${sp.type === 'kidPath' ? '高校卒業後の進路' : '進学先'}を選ぼう。</p><div class="opts">${opts}</div>
+          ${sp.type === 'kidPath' ? `<div class="btn-row"><button class="btn ghost sm" type="button" data-kskip="${k.id}">進学せずに働く</button></div>` : ''}`;
+        break;
+      }
+      case 'kidJob': {
+        const k = G.kidById(sp.kid);
+        if (!k || !k.alive) return '';
+        title = `💼 ${esc(k.first)}の就職`;
+        const offers = G.kidJobOffers(sp);
+        body = `<p class="note">${esc(k.first)}（${k.age}歳）が働き始める。どの仕事をすすめる？</p><div class="opts">${offers.map((o, i) => `<button class="opt" type="button" data-kjob="${i}" data-kid="${k.id}"><span class="oe">💼</span><span><span class="on">${esc(o.job)}</span><span class="os"><span class="chip">月${yen(o.sal)}</span></span></span><span class="or"></span></button>`).join('')}
+          <button class="opt" type="button" data-kjob="self" data-kid="${k.id}"><span class="oe">🙋</span><span><span class="on">本人に任せる</span></span><span class="or"></span></button></div>`;
+        break;
+      }
       case 'kids': {
         const p = G.spouse();
         body = `<p class="note">${p ? esc(p.first) + 'と、' : ''}子どものことを話し合った。</p><div class="opts">
@@ -371,6 +401,10 @@
     box.querySelectorAll('[data-sick]').forEach(b => b.onclick = () => G.treat(b.dataset.sick));
     box.querySelectorAll('[data-scout]').forEach(b => b.onclick = () => G.scout(b.dataset.scout === '1'));
     box.querySelectorAll('[data-prop]').forEach(b => b.onclick = () => G.answerProposal(b.dataset.prop === '1'));
+    box.querySelectorAll('[data-offer]').forEach(b => b.onclick = () => G.offerAnswer(b.dataset.offer, b.dataset.yes === '1'));
+    box.querySelectorAll('[data-kschool]').forEach(b => b.onclick = () => { const r = G.kidTrySchool(b.dataset.kid, b.dataset.stage, +b.dataset.kschool); toast(r && r.msg); });
+    box.querySelectorAll('[data-kskip]').forEach(b => b.onclick = () => G.kidSkip(b.dataset.kskip));
+    box.querySelectorAll('[data-kjob]').forEach(b => b.onclick = () => G.kidPickJob(b.dataset.kid, b.dataset.kjob === 'self' ? 'self' : +b.dataset.kjob));
     box.querySelectorAll('[data-meet]').forEach(b => b.onclick = () => G.meetAnswer(b.dataset.meet === '1'));
     box.querySelectorAll('[data-kids2]').forEach(b => b.onclick = () => G.kidsAnswer(b.dataset.kids2));
     box.querySelectorAll('[data-ab]').forEach(b => b.onclick = () => { G.abroadDecide(b.dataset.ab); const sp = G.S.yr.special.find(x => x.type === 'abroad'); if (sp && sp.result) toast(sp.result); });
@@ -519,7 +553,7 @@
       html += '</div>';
     }
     if (S.fam.kids.length) {
-      html += '<h3 class="fam-h">👶 子ども</h3><div class="people">' + S.fam.kids.map(k => personCard(k, k.rel, { extra: k.spouse ? `<div class="small">💍 ${esc(k.spouse)}と結婚</div>` : '' })).join('') + '</div>';
+      html += '<h3 class="fam-h">👶 子ども</h3><div class="people">' + S.fam.kids.map(k => personCard(k, k.rel + (k.adopted ? '（養子）' : ''), { extra: `${k.school ? `<div class="small">🎓 ${esc(k.school.name)}に通っている</div>` : k.edu ? `<div class="small">🎓 ${esc(k.edu)}</div>` : ''}${k.spouse ? `<div class="small">💍 ${esc(k.spouse)}と結婚</div>` : ''}` })).join('') + '</div>';
     }
     const gks = G.grandkids();
     if (gks.length) {
